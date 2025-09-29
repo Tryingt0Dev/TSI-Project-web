@@ -20,7 +20,7 @@ class LibroSeeder extends Seeder
         $genero1 = GeneroLiterario::where('nombre', 'Novela')->first();
         $genero2 = GeneroLiterario::where('nombre', 'Fábula')->first();
         Libro::create([
-            'isbn_libro' => '978-956-1234567',
+            'isbn_libro' => '607-071-4865',
             'titulo' => 'Cien años de soledad',
             'autor_id' => $autor1->id,
             'genero_id' => $genero1->id,
@@ -31,7 +31,7 @@ class LibroSeeder extends Seeder
         ]);
 
         Libro::create([
-            'isbn_libro' => '978-956-7654321',
+            'isbn_libro' => '978-987-7514308',
             'titulo' => 'El Principito',
             'autor_id' => $autor2->id,
             'genero_id' => $genero2->id,
