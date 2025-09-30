@@ -22,7 +22,9 @@ Route::get('/home', function () {
     $libros = Libro::with(['autor', 'genero'])->get();
     return view('home', compact('libros'));
 })->middleware('auth');
-
+Route::get('/home', [LibroController::class, 'catalogo'])
+    ->name('home')
+    ->middleware('auth');
 // Libros
 Route::resource('libros', LibroController::class);
 Route::get('/buscar-libro', [LibroController::class, 'buscarLibro'])->name('buscar-libro');

@@ -63,4 +63,5 @@ document.getElementById('resultados').addEventListener('change', async function 
             document.getElementById('editorial').value = edition.publishers[0];
         }
     }
+    
 });

@@ -27,9 +27,42 @@
             });
         </script>
     @endif
+    <div class="mb-3">
+        <form method="GET" action="{{ route('libros.index') }}" class="row mb-4 g-2">
+            <div class="col-md-4">
+                <input type="text" name="q" value="{{ request('q') }}" class="form-control"
+                    placeholder="Buscar por título o ISBN...">
+            </div>
 
-    <a href="{{ route('libros.create') }}" class="btn btn-primary mb-3">Agregar Libro</a>
+            <div class="col-md-3">
+                <select name="autor" class="form-select">
+                    <option value="">-- Todos los autores --</option>
+                    @foreach($autores as $autor)
+                        <option value="{{ $autor->id }}" {{ request('autor') == $autor->id ? 'selected' : '' }}>
+                            {{ $autor->nombre }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
+            <div class="col-md-3">
+                <select name="genero" class="form-select">
+                    <option value="">-- Todos los géneros --</option>
+                    @foreach($generos as $genero)
+                        <option value="{{ $genero->id }}" {{ request('genero') == $genero->id ? 'selected' : '' }}>
+                            {{ $genero->nombre }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </div>
+            <a href="{{ route('libros.create') }}" class="btn btn-primary mb-3">Agregar Libro</a>
+        </form>
+       
+    </div>
     <table class="table table-striped">
         <thead>
             <tr>
@@ -42,7 +75,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($libros as $libro)
+            @forelse($libros as $libro)
                 <tr>
                     <td>{{ $libro->titulo }}</td>
                     <td>{{ $libro->editorial }}</td>
@@ -59,7 +92,9 @@
                         </form>
                     </td>
                 </tr>
-            @endforeach
+            @empty
+                <p class="text-center">No se encontraron libros con los filtros aplicados.</p>
+            @endforelse
         </tbody>
     </table>
 </div>

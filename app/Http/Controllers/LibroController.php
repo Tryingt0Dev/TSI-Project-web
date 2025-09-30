@@ -13,10 +13,35 @@ class LibroController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(){
-    $libros = Libro::all();
-    return view('libros.index', compact('libros'));
+    public function index(Request $request)
+    {
+        $query = Libro::with(['autor', 'genero']);
+
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $query->where(function($sub) use ($q) {
+                $sub->where('titulo', 'like', "%$q%")
+                    ->orWhere('isbn_libro', 'like', "%$q%");
+            });
+        }
+
+        if ($request->filled('autor')) {
+            $query->where('autor_id', $request->autor);
+        }
+
+        if ($request->filled('genero')) {
+            $query->where('genero_id', $request->genero);
+        }
+
+        $libros = $query->paginate(12);
+
+        return view('libros.index', [
+            'libros'   => $libros,
+            'autores'  => Autor::all(),
+            'generos'  => GeneroLiterario::all(),
+        ]);
     }
+
 
     /**
      * Show the form for creating a new resource.
@@ -195,4 +220,37 @@ class LibroController extends Controller
         
         return redirect()->route('libros.index')->with('success', 'Libro eliminado correctamente');
     }
+    public function catalogo(Request $request)
+    {
+        $query = Libro::with(['autor', 'genero']);
+
+        
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $query->where(function($sub) use ($q) {
+                $sub->where('titulo', 'like', "%$q%")
+                    ->orWhere('isbn_libro', 'like', "%$q%");
+            });
+        }
+
+        
+        if ($request->filled('autor')) {
+            $query->where('autor_id', $request->autor);
+        }
+
+        
+        if ($request->filled('genero')) {
+            $query->where('genero_id', $request->genero);
+        }
+
+        
+        $libros = $query->paginate(12);
+
+        return view('home', [
+            'libros' => $libros,
+            'autores' => Autor::all(),
+            'generos' => GeneroLiterario::all(),
+        ]);
+    }
+
 }
