@@ -190,8 +190,7 @@ class LibroController extends Controller
      */
     public function destroy(string $id)
     {
-        $libro = Libro::findOrFail($id);
-        $libro->delete();
+        Libro::withTrashed()->where('id', $id)->forceDelete();
 
         
         return redirect()->route('libros.index')->with('success', 'Libro eliminado correctamente');
