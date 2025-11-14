@@ -43,6 +43,30 @@ class Libro extends Model
     }
     public function copias(): HasMany
     {
-        return $this->hasMany(Copia::class, 'id_libro_interno', 'id_libro_interno');
+        return $this->hasMany(Copia::class, 'id_libro_interno', 'id');
+    }
+    public function recalcularStock(): void
+    {
+        
+        $total = $this->copias()->count();
+        $disponible = $this->copias()->where(function ($q) {
+            $q->whereNull('estado')->orWhere('estado', '<>', 'no disponible');
+        })->count();
+
+        
+        $dirty = false;
+        if ($this->stock_total !== $total) {
+            $this->stock_total = $total;
+            $dirty = true;
+        }
+        if ($this->stock_disponible !== $disponible) {
+            $this->stock_disponible = $disponible;
+            $dirty = true;
+        }
+
+        if ($dirty) {
+            
+            $this->saveQuietly();
+        }
     }
 }

@@ -66,12 +66,19 @@
 
     <div class="mb-3">
         <label class="form-label">Stock Total</label>
-        <input type="number" name="stock_total" value="{{ $libro->stock_total }}" class="form-control" required min="0">
+        <input type="number" name="stock_total" class="form-control" min="0" value="{{ $libro->stock_total }}" readonly>
     </div>
 
     <div class="mb-3">
         <label class="form-label">Stock Disponible</label>
-        <input type="number" name="stock_disponible" value="{{ $libro->stock_disponible }}" class="form-control" required min="0">
+        <input type="number" name="stock_disponible" class="form-control" min="0" value="{{ $libro->stock_disponible }}" readonly>
+    </div>
+
+  
+    <div class="mb-3">
+        <label class="form-label">Agregar copias</label>
+        <input type="number" name="add_copias" class="form-control" min="0" value="0">
+        <small class="form-text text-muted">Ingrese cuántas copias desea agregar al libro (se crearán con estado 'disponible').</small>
     </div>
 
     <button type="submit" class="btn btn-primary">Actualizar</button>

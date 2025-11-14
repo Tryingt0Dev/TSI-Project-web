@@ -66,36 +66,43 @@
     <table class="table table-striped">
         <thead>
             <tr>
-                <th>Nombre</th>
-                <th>Editorial</th>
+                <th>ISBN</th>
+                <th>Título</th>
                 <th>Autor</th>
                 <th>Género</th>
-                <th>Stock</th>
+                <th>Stock total</th>
+                <th>Stock disponible</th>
                 <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($libros as $libro)
-                <tr>
-                    <td>{{ $libro->titulo }}</td>
-                    <td>{{ $libro->editorial }}</td>
-                    <td>{{ $libro->autor->nombre ?? $libro->id_detalle_autores }}</td>
-                    <td>{{ $libro->genero->nombre ?? $libro->genero_literario }}</td>
-                    <td>{{ $libro->stock_disponible }}/{{ $libro->stock_total }}</td>
-                    <td class="d-flex gap-2">
-                        <a href="{{ route('libros.edit', $libro->id) }}" class="btn btn-sm btn-warning">Editar</a>
+        @foreach($libros as $libro)
+        <tr>
+            <td>{{ $libro->isbn_libro }}</td>
+            <td>{{ $libro->titulo }}</td>
+            <td>{{ $libro->autor->nombre ?? '-' }}</td>
+            <td>{{ $libro->genero->nombre ?? '-' }}</td>
 
-                        <form action="{{ route('libros.destroy', $libro->id) }}" method="POST" onsubmit="return confirm('¿Seguro que quieres eliminar este libro?');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
-                        </form>
-                    </td>
-                </tr>
-            @empty
-                <p class="text-center">No se encontraron libros con los filtros aplicados.</p>
-            @endforelse
+            {{-- Mostrar copias_count calculado por withCount; si no existe usar fallback a columna stock_total --}}
+            <td>{{ $libro->copias_count ?? $libro->stock_total ?? 0 }}</td>
+
+            {{-- Mostrar copias_disponibles_count calculado por withCount; fallback a stock_disponible --}}
+            <td>{{ $libro->copias_disponibles_count ?? $libro->stock_disponible ?? 0 }}</td>
+
+            <td>
+                <a href="{{ route('libros.edit', $libro->id) }}" class="btn btn-sm btn-primary">Editar</a>
+                <form action="{{ route('libros.destroy', $libro->id) }}" method="POST" style="display:inline">
+                    @csrf @method('DELETE')
+                    <button class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar?')">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        @endforeach
         </tbody>
     </table>
+
+    <div class="d-flex justify-content-center">
+        {{ $libros->links() }}
+    </div>
 </div>
 @endsection

@@ -7,6 +7,8 @@ use App\Models\Autor;
 use App\Models\Ubicacion;
 use App\Models\Libro;
 use App\Models\GeneroLiterario;
+use App\Models\Copia;
+use Illuminate\Support\Facades\DB;
 
 class LibroController extends Controller
 {
@@ -15,7 +17,14 @@ class LibroController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Libro::with(['autor', 'genero']);
+        $query = Libro::with(['autor', 'genero'])
+            ->withCount('copias') // total de copias => copias_count
+            ->withCount([
+                'copias as copias_disponibles_count' => function ($q) {
+                    
+                    $q->whereNull('estado')->orWhere('estado', '<>', 'prestado');
+                }
+            ]);
 
         if ($request->filled('q')) {
             $q = $request->q;
@@ -33,7 +42,7 @@ class LibroController extends Controller
             $query->where('genero_id', $request->genero);
         }
 
-        $libros = $query->paginate(12);
+        $libros = $query->paginate(12)->withQueryString();
 
         return view('libros.index', [
             'libros'   => $libros,
@@ -41,7 +50,6 @@ class LibroController extends Controller
             'generos'  => GeneroLiterario::all(),
         ]);
     }
-
 
     /**
      * Show the form for creating a new resource.
@@ -54,7 +62,7 @@ class LibroController extends Controller
 
         return view('libros.create', compact('autores', 'ubicaciones', 'generos_literarios'));
     }
- 
+
     /**
      * Store a newly created resource in storage.
      */
@@ -67,46 +75,56 @@ class LibroController extends Controller
             'editorial' => 'nullable|string|max:255',
             'genero_nombre' => 'nullable|string|max:255',
             'autor_nombre' => 'nullable|string|max:255',
-            'stock_total' => 'required|integer|min:0',
-            'stock_disponible' => 'required|integer|min:0',
+            'num_copias' => 'nullable|integer|min:0',
+            'id_ubicaciones' => 'nullable|exists:ubicaciones,id', // asegúrate que la tabla y PK se llamen así
         ]);
 
-        
+        // Resolver/crear genero y autor (igual que antes)
         $generoId = null;
-        if (!empty($request->genero_nombre)) {
-            $genero = GeneroLiterario::firstOrCreate(
-                ['nombre' => $request->genero_nombre]
-            );
+        if (! empty($request->genero_nombre)) {
+            $genero = GeneroLiterario::firstOrCreate(['nombre' => $request->genero_nombre]);
             $generoId = $genero->id;
         }
 
-       
         $autorId = null;
-        if (!empty($request->autor_nombre)) {
-            $autor = Autor::firstOrCreate(
-                ['nombre' => $request->autor_nombre]
-            );
+        if (! empty($request->autor_nombre)) {
+            $autor = Autor::firstOrCreate(['nombre' => $request->autor_nombre]);
             $autorId = $autor->id;
         }
 
-        
-        $libro = new Libro();
-        $libro->isbn_libro = $request->isbn_libro;
-        $libro->titulo = $request->titulo;
-        $libro->fecha_publicacion = $request->fecha_publicacion;
-        $libro->editorial = $request->input('editorial');
-        $libro->stock_disponible = $request->stock_disponible;
-        $libro->stock_total = $request->stock_total;
-        $libro->genero_id = $generoId;
-        $libro->autor_id = $autorId;
+        $numCopias = (int) ($request->input('num_copias', 0));
+        $idUbicaciones = $request->input('id_ubicaciones', null);
 
-        $libro->save();
+        
+        DB::transaction(function () use ($request, $generoId, $autorId, $numCopias, $idUbicaciones, &$libro) {
+            $libro = new Libro();
+            $libro->isbn_libro = $request->isbn_libro;
+            $libro->titulo = $request->titulo;
+            $libro->fecha_publicacion = $request->fecha_publicacion;
+            $libro->editorial = $request->input('editorial');
+            $libro->genero_id = $generoId;
+            $libro->autor_id = $autorId;
+
+            // Guardamos el libro
+            $libro->save();
+
+            // Crear las copias solicitadas
+            for ($i = 0; $i < $numCopias; $i++) {
+                Copia::create([
+                    'id_libro_interno' => $libro->id,
+                    'estado' => 'disponible',
+                    'id_ubicaciones' => $idUbicaciones,
+                ]);
+            }
+            // Recalcular stock
+            $libro->recalcularStock();
+        });
 
         return redirect()
             ->route('libros.index')
             ->with('success', 'Libro agregado correctamente');
     }
-    
+
     /**
      * Busqueda en la api del isbn
      */
@@ -152,9 +170,11 @@ class LibroController extends Controller
     public function edit($id)
     {
         $libro = Libro::findOrFail($id);
-        $autores = Autor::all(); 
+        $autores = Autor::all();
         $generos_literarios = GeneroLiterario::all();
-        return view('libros.edit', compact('libro', 'autores', 'generos_literarios'));
+        $ubicaciones = Ubicacion::all();
+
+        return view('libros.edit', compact('libro', 'autores', 'generos_literarios', 'ubicaciones'));
     }
 
     /**
@@ -172,40 +192,36 @@ class LibroController extends Controller
             'genero_id' => 'nullable|exists:generos_literarios,id',
             'genero_nombre' => 'nullable|string|max:100',
             'fecha_publicacion' => 'nullable|date',
-            'stock_total' => 'required|integer|min:0',
-            'stock_disponible' => 'required|integer|min:0',
+            'stock_total' => 'sometimes|integer|min:0',
+            'stock_disponible' => 'sometimes|integer|min:0',
         ]);
 
-        
-        if (!empty($request->autor_nombre)) {
-            $autor = Autor::firstOrCreate(
-                ['nombre' => $request->autor_nombre]
-            );
+        // Resolver autor/genero 
+        if (! empty($request->autor_nombre)) {
+            $autor = Autor::firstOrCreate(['nombre' => $request->autor_nombre]);
             $autor_id = $autor->id;
         } else {
             $autor_id = $request->autor_id;
         }
 
-        
-        if (!empty($request->genero_nombre)) {
-            $genero = GeneroLiterario::firstOrCreate(
-                ['nombre' => $request->genero_nombre]
-            );
+        if (! empty($request->genero_nombre)) {
+            $genero = GeneroLiterario::firstOrCreate(['nombre' => $request->genero_nombre]);
             $genero_id = $genero->id;
         } else {
             $genero_id = $request->genero_id;
         }
 
-        
+        // Actualizar campos básicos
         $libro->update([
             'isbn_libro' => $validated['isbn_libro'],
             'titulo' => $validated['titulo'],
             'autor_id' => $autor_id,
             'genero_id' => $genero_id,
             'fecha_publicacion' => $validated['fecha_publicacion'] ?? null,
-            'stock_total' => $validated['stock_total'],
-            'stock_disponible' => $validated['stock_disponible'],
         ]);
+
+        // Recalcular stock en caso de que se hayan cambiado cosas que afecten copias
+        $libro->recalcularStock();
 
         return redirect()->route('libros.index')->with('success', 'Libro actualizado correctamente');
     }
@@ -217,14 +233,13 @@ class LibroController extends Controller
     {
         Libro::withTrashed()->where('id', $id)->forceDelete();
 
-        
         return redirect()->route('libros.index')->with('success', 'Libro eliminado correctamente');
     }
+
     public function catalogo(Request $request)
     {
         $query = Libro::with(['autor', 'genero']);
 
-        
         if ($request->filled('q')) {
             $q = $request->q;
             $query->where(function($sub) use ($q) {
@@ -233,17 +248,14 @@ class LibroController extends Controller
             });
         }
 
-        
         if ($request->filled('autor')) {
             $query->where('autor_id', $request->autor);
         }
 
-        
         if ($request->filled('genero')) {
             $query->where('genero_id', $request->genero);
         }
 
-        
         $libros = $query->paginate(12);
 
         return view('home', [
@@ -252,5 +264,4 @@ class LibroController extends Controller
             'generos' => GeneroLiterario::all(),
         ]);
     }
-
 }
