@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         AutorSeeder::class,
         UbicacionSeeder::class,
         GeneroLiterarioSeeder::class,
+        CopiaSeeder::class,
         ]);
         $this->call(LibroSeeder::class);
         $this->call(UserSeeder::class);

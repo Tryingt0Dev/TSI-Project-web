@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 class Libro extends Model
 {
     use HasFactory;
@@ -39,5 +40,9 @@ class Libro extends Model
     public function genero()
     {
         return $this->belongsTo(GeneroLiterario::class, 'genero_id');
+    }
+    public function copias(): HasMany
+    {
+        return $this->hasMany(Copia::class, 'id_libro_interno', 'id_libro_interno');
     }
 }
