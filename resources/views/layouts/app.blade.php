@@ -33,7 +33,21 @@
                     </li>
                 </ul>
             </div>
+            
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="#" 
+                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                        Cerrar Sesión
+                    </a>
+                </li>
+            </ul>
+            
+            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                @csrf
+            </form>
         </div>
+    
     </nav>
     <!-- Contenido principal -->
 
