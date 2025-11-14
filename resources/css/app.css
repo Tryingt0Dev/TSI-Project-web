@@ -4,3 +4,77 @@
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@100..700&display=swap');
 
+:root{
+  --accent:#5B7CFA;
+  --muted:#6c757d;
+}
+
+body { font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:#222; }
+
+/* Navbar gradient */
+.navbar.bg-gradient {
+  background: linear-gradient(90deg, #4b6ef6 0%, #7fb3ff 100%);
+}
+
+/* Cards */
+.card {
+  border: 0;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(35,45,70,0.08);
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--accent);
+  border: 0;
+  box-shadow: 0 6px 18px rgba(91,124,250,0.18);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn-primary:hover { transform: translateY(-2px); }
+
+/* Table header */
+.table thead th {
+  background: linear-gradient(90deg, rgba(91,124,250,0.06), rgba(127,179,255,0.02));
+  border-bottom: 0;
+  font-weight:600;
+}
+.table tbody tr:hover { background:#fbfdff; }
+
+/* Badges */
+.badge-available { background:#2dd4bf; color:#0f172a; }
+.badge-borrowed { background:#ffb020; color:#1b1b1b; }
+
+/* KPI box */
+.kpi {
+  border-radius: 10px;
+  padding:12px 16px;
+  background: linear-gradient(180deg,#fff,#fbfdff);
+  box-shadow: 0 6px 18px rgba(35,45,70,0.04);
+}
+
+/* Form focus */
+.form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0.15rem rgba(91,124,250,0.12);
+}
+
+@media (max-width: 768px) {
+  .navbar-brand .fw-bold { font-size: 0.95rem; }
+}
+.navbar-nav .nav-link {
+    color: #e2dfdf !important;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #93c5fd !important; /* azul suave */
+}
+
+.navbar-nav .active-nav {
+    color: #60a5fa !important;
+    font-weight: 600;
+}
+
+/* Ícono hamburguesa blanco */
+.navbar-toggler-icon {
+    filter: invert(1);
+}

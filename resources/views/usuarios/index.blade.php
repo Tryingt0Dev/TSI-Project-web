@@ -40,10 +40,13 @@
                     <td>
                         <a href="{{ route('usuarios.edit', $usuario->id) }}" class="btn btn-sm btn-primary">Editar</a>
 
-                        <form action="{{ route('usuarios.destroy', $usuario->id) }}" method="POST" style="display:inline">
-                            @csrf @method('DELETE')
-                            <button class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar usuario?')">Eliminar</button>
-                        </form>
+                        <button class="btn btn-sm btn-danger btn-confirm"
+                            data-action="{{ route('usuarios.destroy', $usuario->id) }}"
+                            data-method="DELETE"
+                            data-title="Eliminar usuario"
+                            data-text="¿Eliminar a {{ $usuario->name }}?">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </td>
                 </tr>
             @endforeach

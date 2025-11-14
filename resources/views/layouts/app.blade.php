@@ -5,66 +5,155 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>@yield('title', 'Biblioteca')</title>
-    @vite('resources/js/app.js')
-    <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-</head>
-<body>
-     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url('/') }}">Biblioteca</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
 
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link @if(request()->is('/home')) active @endif" href="{{ url('/home') }}">Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link @if(request()->is('libros')) active @endif" href="{{ url('/libros') }}">Libros</a>
-                    </li>
-                    @auth
-                        @if(Auth::user()->rol === 0)
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('usuarios.index') }}">Usuarios</a>
-                            </li>
-                        @endif
-                    @endauth
-                    <li class="nav-item">
-                        <a class="nav-link @if(request()->is('prestamos')) active @endif" href="{{ url('/prestamos') }}">Préstamos</a>
-                    </li>
-                </ul>
-            </div>
-            
+    {{-- Vite (tu build JS/CSS principal) --}}
+    @vite('resources/js/app.js')
+
+    {{-- CSS específicos de la app --}}
+    <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+
+    {{-- Bootstrap (CDN fallback / visual) --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    {{-- Bootstrap Icons --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    {{-- CSRF meta para JS --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    @stack('head')
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm"
+     style="background: #1f2937 !important;">
+    <div class="container-fluid">
+
+        {{-- LOGO --}}
+        <a class="navbar-brand d-flex align-items-center text-white" href="{{ url('/') }}">
+            <i class="bi bi-book-half fs-4 me-2 text-primary"></i>
+            <span class="fw-bold">Biblioteca</span>
+        </a>
+
+        {{-- MENÚ MÓVIL --}}
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false"
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        {{-- MENÚ --}}
+        <div class="collapse navbar-collapse" id="navbarNav">
+
+            {{-- LINKS IZQUIERDOS --}}
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
                 <li class="nav-item">
-                    <a class="nav-link" href="#" 
-                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                        Cerrar Sesión
+                    <a class="nav-link {{ request()->is('home') ? 'active-nav' : '' }}" 
+                       href="{{ url('/home') }}">
+                        Inicio
                     </a>
                 </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->is('libros') ? 'active-nav' : '' }}" 
+                       href="{{ url('/libros') }}">
+                        Libros
+                    </a>
+                </li>
+
+                @auth
+                    @if(Auth::user()->rol == 0)
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->is('usuarios') ? 'active-nav' : '' }}" 
+                               href="{{ route('usuarios.index') }}">
+                                Usuarios
+                            </a>
+                        </li>
+                    @endif
+                @endauth
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->is('prestamos') ? 'active-nav' : '' }}" 
+                       href="{{ url('/prestamos') }}">
+                        Préstamos
+                    </a>
+                </li>
+
             </ul>
-            
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                @csrf
-            </form>
+
+            {{-- USUARIO --}}
+            <ul class="navbar-nav ms-auto">
+
+                @auth
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center text-white" 
+                       href="#" id="userMenu" role="button" data-bs-toggle="dropdown">
+
+                        <i class="bi bi-person-circle fs-4 me-2 text-primary"></i>
+
+                        <div class="d-none d-md-block text-start">
+                            <div class="small fw-semibold">
+                                {{ Auth::user()->name }} {{ Auth::user()->apellido }}
+                            </div>
+                            <div class="small text-secondary">
+                                {{ Auth::user()->rol == 0 ? 'Administrador' : 'Bibliotecario' }}
+                            </div>
+                        </div>
+                    </a>
+
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><a class="dropdown-item" href="#">Perfil</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="#"
+                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                Cerrar sesión
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                @endauth
+
+            </ul>
+
         </div>
-    
-    </nav>
-    <!-- Contenido principal -->
+    </div>
+</nav>
 
-    <main class="container mt-4">
-        @yield('content')
-    </main>
+<form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+    @csrf
+</form>
 
+<main class="container mt-4">
+    @yield('content')
+</main>
 
+{{-- Confirm modal (reusable) --}}
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body text-center p-4">
+        <i class="bi bi-exclamation-triangle display-5 text-warning mb-3"></i>
+        <h5 id="confirmTitle">¿Estás seguro?</h5>
+        <p id="confirmText" class="small text-muted">Esta acción no se puede deshacer.</p>
+        <div class="d-flex justify-content-center gap-2 mt-3">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" id="confirmYes" class="btn btn-danger">Sí, eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
+{{-- Bootstrap JS (CDN) --}}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
+{{-- Custom UI JS --}}
+<script src="{{ asset('js/ui.js') }}"></script>
 
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    @stack('scripts')
+@stack('scripts')
 </body>
 </html>
