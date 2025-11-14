@@ -6,6 +6,7 @@ use App\Http\Controllers\LibroController;
 use App\Http\Controllers\PrestamoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Middleware\CheckRole;
 use App\Models\Libro;
 
 Route::get('/', function () {
@@ -32,8 +33,9 @@ Route::get('/buscar-libro', [LibroController::class, 'buscarLibro'])->name('busc
 
 // Usuarios
 
-Route::get('/usuarios', [UsuarioController::class, 'index'])->middleware('auth');
-
+Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
+    Route::resource('usuarios', UsuarioController::class);
+});
 // Prestamos
 
 Route::get('/prestamos', [PrestamoController::class, 'index'])->middleware('auth');

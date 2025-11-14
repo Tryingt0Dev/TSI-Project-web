@@ -25,9 +25,13 @@
                     <li class="nav-item">
                         <a class="nav-link @if(request()->is('libros')) active @endif" href="{{ url('/libros') }}">Libros</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link @if(request()->is('usuarios')) active @endif" href="{{ url('/usuarios') }}">Usuarios</a>
-                    </li>
+                    @auth
+                        @if(Auth::user()->rol === 0)
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('usuarios.index') }}">Usuarios</a>
+                            </li>
+                        @endif
+                    @endauth
                     <li class="nav-item">
                         <a class="nav-link @if(request()->is('prestamos')) active @endif" href="{{ url('/prestamos') }}">Préstamos</a>
                     </li>
