@@ -6,6 +6,7 @@ use App\Http\Controllers\LibroController;
 use App\Http\Controllers\PrestamoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CopiaController;
 use App\Http\Middleware\CheckRole;
 use App\Models\Libro;
 
@@ -30,7 +31,9 @@ Route::get('/home', [LibroController::class, 'catalogo'])
 // Libros
 Route::resource('libros', LibroController::class);
 Route::get('/buscar-libro', [LibroController::class, 'buscarLibro'])->name('buscar-libro');
-
+Route::get('/libros/{libro}/detalle', [LibroController::class, 'detalle'])
+     ->name('libros.detalle');
+Route::patch('copias/{copia}', [CopiaController::class, 'update'])->name('copias.update');
 // Usuarios
 
 Route::middleware(['auth', CheckRole::class.':0'])->group(function () {

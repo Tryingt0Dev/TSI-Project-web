@@ -1,19 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>@yield('title', 'Biblioteca')</title>
 
-    {{-- Vite (tu build JS/CSS principal) --}}
-    @vite('resources/js/app.js')
-
-    {{-- CSS específicos de la app --}}
-    <link rel="stylesheet" href="{{ asset('css/catalogo.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
-
-    {{-- Bootstrap (CDN fallback / visual) --}}
+    {{-- Bootstrap CSS (CDN) - colocamos antes para que Vite CSS lo pueda sobrescribir si hace falta --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
@@ -23,12 +16,18 @@
     {{-- CSRF meta para JS --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    {{-- Vite: inyecta JS y CSS (única llamada, ordenada) --}}
+    @vite([
+        'resources/js/app.js',
+        'resources/css/app.css',
+        'resources/css/style.css'
+    ])
+
     @stack('head')
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg navbar-dark shadow-sm"
-     style="background: #1f2937 !important;">
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: #1f2937 !important;">
     <div class="container-fluid">
 
         {{-- LOGO --}}
@@ -47,76 +46,52 @@
         {{-- MENÚ --}}
         <div class="collapse navbar-collapse" id="navbarNav">
 
-            {{-- LINKS IZQUIERDOS --}}
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->is('home') ? 'active-nav' : '' }}" 
-                       href="{{ url('/home') }}">
-                        Inicio
-                    </a>
+                    <a class="nav-link {{ request()->is('home') ? 'active-nav' : '' }}" href="{{ url('/home') }}">Inicio</a>
                 </li>
-
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->is('libros') ? 'active-nav' : '' }}" 
-                       href="{{ url('/libros') }}">
-                        Libros
-                    </a>
+                    <a class="nav-link {{ request()->is('libros') ? 'active-nav' : '' }}" href="{{ url('/libros') }}">Libros</a>
                 </li>
 
                 @auth
                     @if(Auth::user()->rol == 0)
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->is('usuarios') ? 'active-nav' : '' }}" 
-                               href="{{ route('usuarios.index') }}">
-                                Usuarios
-                            </a>
+                            <a class="nav-link {{ request()->is('usuarios') ? 'active-nav' : '' }}" href="{{ route('usuarios.index') }}">Usuarios</a>
                         </li>
                     @endif
                 @endauth
 
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->is('prestamos') ? 'active-nav' : '' }}" 
-                       href="{{ url('/prestamos') }}">
-                        Préstamos
-                    </a>
+                    <a class="nav-link {{ request()->is('prestamos') ? 'active-nav' : '' }}" href="{{ url('/prestamos') }}">Préstamos</a>
                 </li>
-
             </ul>
 
-            {{-- USUARIO --}}
             <ul class="navbar-nav ms-auto">
-
-                @auth
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center text-white" 
-                       href="#" id="userMenu" role="button" data-bs-toggle="dropdown">
-
-                        <i class="bi bi-person-circle fs-4 me-2 text-primary"></i>
-
-                        <div class="d-none d-md-block text-start">
-                            <div class="small fw-semibold">
-                                {{ Auth::user()->name }} {{ Auth::user()->apellido }}
+                @guest
+                    <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Ingresar</a></li>
+                @else
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" id="userMenu" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle fs-4 me-2 text-primary"></i>
+                            <div class="d-none d-md-block text-start">
+                                <div class="small fw-semibold">{{ Auth::user()->name }} {{ Auth::user()->apellido }}</div>
+                                <div class="small text-secondary">{{ Auth::user()->rol == 0 ? 'Administrador' : 'Bibliotecario' }}</div>
                             </div>
-                            <div class="small text-secondary">
-                                {{ Auth::user()->rol == 0 ? 'Administrador' : 'Bibliotecario' }}
-                            </div>
-                        </div>
-                    </a>
+                        </a>
 
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                        <li><a class="dropdown-item" href="#">Perfil</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item text-danger" href="#"
-                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                Cerrar sesión
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                @endauth
-
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li><a class="dropdown-item" href="#">Perfil</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#"
+                                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                    Cerrar sesión
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                @endguest
             </ul>
 
         </div>
@@ -150,9 +125,6 @@
 
 {{-- Bootstrap JS (CDN) --}}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
-{{-- Custom UI JS --}}
-<script src="{{ asset('js/ui.js') }}"></script>
 
 @stack('scripts')
 </body>

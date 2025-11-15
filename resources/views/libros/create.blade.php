@@ -98,5 +98,5 @@
     <a href="{{ route('libros.index') }}" class="btn btn-secondary">Cancelar</a>
 </form>
 
-<script src="{{ asset('js/busqueda.js') }}"></script>
+
 @endsection

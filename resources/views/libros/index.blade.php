@@ -133,17 +133,18 @@
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
 
-                                    <a href="{{ route('libros.show', $libro->id) }}" class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="tooltip" title="Ver">
-                                        <i class="bi bi-eye"></i>
+                                    <a href="{{ route('libros.detalle', $libro->id) }}" 
+                                        class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="tooltip" title="Ver"><i class="bi bi-eye"></i>
                                     </a>
 
-                                    <button class="btn btn-sm btn-danger btn-confirm"
-                                        data-action="{{ route('libros.destroy', $libro->id) }}"
-                                        data-method="DELETE"
-                                        data-title="Eliminar libro"
-                                        data-text="¿Eliminar el libro '{{ $libro->titulo }}'?">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    <form action="{{ route('libros.destroy', $libro->id) }}" method="POST" style="display:inline"
+                                        onsubmit="return confirm('¿Confirmas que quieres eliminar el libro: {{ addslashes($libro->titulo) }} ?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @empty
@@ -164,4 +165,26 @@
         {{ $libros->links() }}
     </div>
 </div>
+
+{{-- Modal global de confirmación (necesario para que btn-confirm funcione) --}}
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmTitle">Confirmar</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body">
+        <p id="confirmText">¿Estás seguro de realizar esta acción?</p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button id="confirmYes" type="button" class="btn btn-danger">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 @endsection

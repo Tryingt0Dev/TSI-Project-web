@@ -112,15 +112,5 @@
 
 </div>
 
-{{-- Estilo para efectos hover --}}
-<style>
-    .book-card {
-        transition: transform .15s ease, box-shadow .2s ease;
-    }
 
-    .book-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-    }
-</style>
 @endsection

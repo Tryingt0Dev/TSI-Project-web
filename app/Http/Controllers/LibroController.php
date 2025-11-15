@@ -18,12 +18,14 @@ class LibroController extends Controller
     public function index(Request $request)
     {
         $query = Libro::with(['autor', 'genero'])
-            ->withCount('copias') // total de copias => copias_count
             ->withCount([
+                'copias', 
                 'copias as copias_disponibles_count' => function ($q) {
-                    
-                    $q->whereNull('estado')->orWhere('estado', '<>', 'prestado');
-                }
+                    $q->where(function($sub) {
+                        $sub->whereNull('estado')
+                            ->orWhere('estado', '<>', 'prestado');
+                    });
+                },
             ]);
 
         if ($request->filled('q')) {
@@ -42,12 +44,12 @@ class LibroController extends Controller
             $query->where('genero_id', $request->genero);
         }
 
-        $libros = $query->paginate(12)->withQueryString();
+        $libros = $query->paginate(12);
 
         return view('libros.index', [
             'libros'   => $libros,
-            'autores'  => Autor::all(),
-            'generos'  => GeneroLiterario::all(),
+            'autores'  => \App\Models\Autor::all(),
+            'generos'  => \App\Models\GeneroLiterario::all(),
         ]);
     }
 
@@ -124,7 +126,7 @@ class LibroController extends Controller
             ->route('libros.index')
             ->with('success', 'Libro agregado correctamente');
     }
-
+    
     /**
      * Busqueda en la api del isbn
      */
@@ -155,7 +157,12 @@ class LibroController extends Controller
 
         return response()->json($resultados);
     }
-
+    public function detalle(Libro $libro)
+    {
+        $libro->load(['autor', 'genero', 'copias']); // no cargamos ubicacion por cada copia aquí, lo pedimos después si quieres
+        $ubicaciones = Ubicacion::all(); // lista para el select
+        return view('libros.detalle', compact('libro', 'ubicaciones'));
+    }
     /**
      * Display the specified resource.
      */
