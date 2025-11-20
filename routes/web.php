@@ -41,4 +41,4 @@ Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
 });
 // Prestamos
 
-Route::get('/prestamos', [PrestamoController::class, 'index'])->middleware('auth');
+Route::resource('prestamos', PrestamoController::class)->middleware('auth');

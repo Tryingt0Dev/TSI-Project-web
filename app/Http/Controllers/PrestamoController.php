@@ -9,4 +9,8 @@ class PrestamoController extends Controller
     public function index(){
     return view('prestamos.index');
     }
+
+    public function create(){
+    return view('prestamos.create');
+    }
 }
