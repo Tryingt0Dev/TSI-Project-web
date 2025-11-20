@@ -12,9 +12,9 @@ class UbicacionSeeder extends Seeder
     {
         Ubicacion::create(['estante' => 'A']);
         Ubicacion::create(['estante' => 'B']);
+        Ubicacion::create(['estante' => 'C']);
         Ubicacion::create(['seccion' => 'D']);
         Ubicacion::create(['seccion' => 'E']);
         Ubicacion::create(['seccion' => 'F']);
-        Ubicacion::create(['estante' => 'C']);
     }
 }
