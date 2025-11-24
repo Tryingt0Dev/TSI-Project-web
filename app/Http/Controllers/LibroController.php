@@ -37,11 +37,11 @@ class LibroController extends Controller
         }
 
         if ($request->filled('autor')) {
-            $query->where('autor_id', $request->autor);
+            $query->where('id_autor', $request->autor);
         }
 
         if ($request->filled('genero')) {
-            $query->where('genero_id', $request->genero);
+            $query->where('id_genero', $request->genero);
         }
 
         $libros = $query->paginate(12);
@@ -85,13 +85,13 @@ class LibroController extends Controller
         $generoId = null;
         if (! empty($request->genero_nombre)) {
             $genero = Genero::firstOrCreate(['nombre' => $request->genero_nombre]);
-            $generoId = $genero->id;
+            $generoId = $genero->id_genero;
         }
 
         $autorId = null;
         if (! empty($request->autor_nombre)) {
             $autor = Autor::firstOrCreate(['nombre' => $request->autor_nombre]);
-            $autorId = $autor->id;
+            $autorId = $autor->id_autor;
         }
 
         $numCopias = (int) ($request->input('num_copias', 0));
@@ -104,8 +104,8 @@ class LibroController extends Controller
             $libro->titulo = $request->titulo;
             $libro->fecha_publicacion = $request->fecha_publicacion;
             $libro->editorial = $request->input('editorial');
-            $libro->genero_id = $generoId;
-            $libro->autor_id = $autorId;
+            $libro->id_genero = $generoId;
+            $libro->id_autor = $autorId;
 
             // Guardamos el libro
             $libro->save();
@@ -113,7 +113,7 @@ class LibroController extends Controller
             // Crear las copias solicitadas
             for ($i = 0; $i < $numCopias; $i++) {
                 Copia::create([
-                    'id_libro_interno' => $libro->id,
+                    'id_libro_interno' => $libro->id_libro_interno,
                     'estado' => 'disponible',
                     'id_ubicaciones' => $idUbicaciones,
                 ]);
@@ -192,11 +192,11 @@ class LibroController extends Controller
         $libro = Libro::findOrFail($id);
 
         $validated = $request->validate([
-            'isbn_libro' => 'required|string|max:50|unique:libros,isbn_libro,' . $libro->id,
+            'isbn_libro' => 'required|string|max:50|unique:libros,isbn_libro,'. $libro->id_libro_interno . ',id_libro_interno',
             'titulo' => 'required|string|max:150',
-            'autor_id' => 'nullable|exists:autores,id',
+            'id_autor' => 'nullable|exists:autores,id_autor',
             'autor_nombre' => 'nullable|string|max:150',
-            'genero_id' => 'nullable|exists:generos_literarios,id',
+            'id_genero' => 'nullable|exists:generos_literarios,id_genero',
             'genero_nombre' => 'nullable|string|max:100',
             'fecha_publicacion' => 'nullable|date',
             'stock_total' => 'sometimes|integer|min:0',
@@ -206,24 +206,24 @@ class LibroController extends Controller
         // Resolver autor/genero 
         if (! empty($request->autor_nombre)) {
             $autor = Autor::firstOrCreate(['nombre' => $request->autor_nombre]);
-            $autor_id = $autor->id;
+            $autor_id = $autor->id_autor;
         } else {
-            $autor_id = $request->autor_id;
+            $autor_id = $request->id_autor;
         }
 
         if (! empty($request->genero_nombre)) {
             $genero = Genero::firstOrCreate(['nombre' => $request->genero_nombre]);
-            $genero_id = $genero->id;
+            $genero_id = $genero->id_genero;
         } else {
-            $genero_id = $request->genero_id;
+            $genero_id = $request->id_genero;
         }
 
         // Actualizar campos básicos
         $libro->update([
             'isbn_libro' => $validated['isbn_libro'],
             'titulo' => $validated['titulo'],
-            'autor_id' => $autor_id,
-            'genero_id' => $genero_id,
+            'id_autor' => $autor_id,
+            'id_autor' => $genero_id,
             'fecha_publicacion' => $validated['fecha_publicacion'] ?? null,
         ]);
 

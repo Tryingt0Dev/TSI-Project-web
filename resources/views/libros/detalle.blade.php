@@ -92,7 +92,7 @@
                                         <button class="btn btn-sm btn-outline-primary btn-edit-copia"
                                             data-id="{{ $copia->id_copia ?? $copia->id }}"
                                             data-estado="{{ $copia->estado ?? '' }}"
-                                            data-id_ubicaciones="{{ $copia->id_ubicaciones ?? '' }}"
+                                            data-id_ubicacion="{{ $copia->id_ubicacion ?? '' }}"
                                             data-estante="{{ $copia->ubicacion->estante ?? '' }}"
                                             data-seccion="{{ $copia->ubicacion->seccion ?? '' }}"
                                             title="Editar copia">
@@ -149,7 +149,7 @@
                     <option value="">-- Seleccionar ubicación --</option>
                     @if(isset($ubicaciones) && $ubicaciones->count())
                         @foreach($ubicaciones as $u)
-                            <option value="{{ $u->id }}">{{ $u->estante }} / {{ $u->seccion }}</option>
+                            <option value="{{ $u->id_ubicacion }}">{{ $u->estante }} / {{ $u->seccion }}</option>
                         @endforeach
                     @endif
                 </select>
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // submit por fetch (AJAX) con CSRF token
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        const id = document.getElementById('copia_id').value;
+        const id = document.getElementById('id_copia').value;
         const action = form.action;
         const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!res.ok) throw new Error(json.message || 'Error en servidor');
 
             // actualizar fila UI: estado y ubicacion
-            const row = document.getElementById('copia-row-' + id);
+            const row = document.getElementById('copia-row-' + id_copia);
             if (row) {
                 const ubic = json.copia.ubicacion ?? null;
 
@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const editBtn = row.querySelector('.btn-edit-copia');
                 if (editBtn) {
                     editBtn.dataset.estado = json.copia.estado ?? '';
-                    editBtn.dataset.id_ubicaciones = json.copia.id_ubicaciones ?? '';
+                    editBtn.dataset.id_ubicacion = json.copia.id_ubicacion ?? '';
                     editBtn.dataset.estante = ubic ? (ubic.estante ?? '') : '';
                     editBtn.dataset.seccion = ubic ? (ubic.seccion ?? '') : '';
                 }

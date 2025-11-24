@@ -54,7 +54,7 @@
                     <select name="autor" class="form-select">
                         <option value="">-- Todos los autores --</option>
                         @foreach($autores as $autor)
-                            <option value="{{ $autor->id }}" {{ request('autor') == $autor->id ? 'selected' : '' }}>
+                            <option value="{{ $autor->id_autor }}" {{ request('autor') == $autor->id_autor ? 'selected' : '' }}>
                                 {{ $autor->nombre }}
                             </option>
                         @endforeach
@@ -66,7 +66,7 @@
                     <select name="genero" class="form-select">
                         <option value="">-- Todos los géneros --</option>
                         @foreach($generos as $genero)
-                            <option value="{{ $genero->id }}" {{ request('genero') == $genero->id ? 'selected' : '' }}>
+                            <option value="{{ $genero->id_genero }}" {{ request('genero') == $genero->id_genero ? 'selected' : '' }}>
                                 {{ $genero->nombre }}
                             </option>
                         @endforeach

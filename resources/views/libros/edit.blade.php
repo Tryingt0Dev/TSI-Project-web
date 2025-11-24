@@ -26,7 +26,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('libros.update', $libro->id) }}" method="POST" class="row g-3">
+            <form action="{{ route('libros.update', $libro->id_libro_interno) }}" method="POST" class="row g-3">
                 @csrf
                 @method('PUT')
 
@@ -48,7 +48,7 @@
                     <select name="autor_id" class="form-select">
                         <option value="">-- Seleccione un autor --</option>
                         @foreach($autores as $autor)
-                            <option value="{{ $autor->id }}" {{ (old('autor_id', $libro->autor_id) == $autor->id) ? 'selected' : '' }}>
+                            <option value="{{ $autor->id_autor }}" {{ (old('autor_id', $libro->id_autor) == $autor->id) ? 'selected' : '' }}>
                                 {{ $autor->nombre }}
                             </option>
                         @endforeach
@@ -63,7 +63,7 @@
                     <select name="genero_id" class="form-select">
                         <option value="">-- Seleccione un género --</option>
                         @foreach($generos_literarios as $genero)
-                            <option value="{{ $genero->id }}" {{ (old('genero_id', $libro->genero_id) == $genero->id) ? 'selected' : '' }}>
+                            <option value="{{ $genero->id_genero }}" {{ (old('genero_id', $libro->id_genero) == $genero->id) ? 'selected' : '' }}>
                                 {{ $genero->nombre }}
                             </option>
                         @endforeach
@@ -100,7 +100,7 @@
                     <select name="id_ubicaciones" class="form-select">
                         <option value="">-- Seleccione (opcional) --</option>
                         @foreach($ubicaciones as $u)
-                            <option value="{{ $u->id }}" {{ (old('id_ubicaciones') == $u->id) ? 'selected' : '' }}>
+                            <option value="{{ $u->id_ubicacion }}" {{ (old('id_ubicaciones') == $u->id) ? 'selected' : '' }}>
                                 {{ $u->estante }}{{ $u->seccion ? ' - ' . $u->seccion : '' }}
                             </option>
                         @endforeach
