@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Autor;
 use App\Models\Ubicacion;
 use App\Models\Libro;
-use App\Models\GeneroLiterario;
+use App\Models\Genero;
 use App\Models\Copia;
 use Illuminate\Support\Facades\DB;
 
@@ -49,7 +49,7 @@ class LibroController extends Controller
         return view('libros.index', [
             'libros'   => $libros,
             'autores'  => \App\Models\Autor::all(),
-            'generos'  => \App\Models\GeneroLiterario::all(),
+            'generos'  => \App\Models\Genero::all(),
         ]);
     }
 
@@ -60,7 +60,7 @@ class LibroController extends Controller
     {
         $autores = Autor::all();
         $ubicaciones = Ubicacion::all();
-        $generos_literarios = GeneroLiterario::all();
+        $generos_literarios = Genero::all();
 
         return view('libros.create', compact('autores', 'ubicaciones', 'generos_literarios'));
     }
@@ -84,7 +84,7 @@ class LibroController extends Controller
         // Resolver/crear genero y autor (igual que antes)
         $generoId = null;
         if (! empty($request->genero_nombre)) {
-            $genero = GeneroLiterario::firstOrCreate(['nombre' => $request->genero_nombre]);
+            $genero = Genero::firstOrCreate(['nombre' => $request->genero_nombre]);
             $generoId = $genero->id;
         }
 
@@ -178,7 +178,7 @@ class LibroController extends Controller
     {
         $libro = Libro::findOrFail($id);
         $autores = Autor::all();
-        $generos_literarios = GeneroLiterario::all();
+        $generos_literarios = Genero::all();
         $ubicaciones = Ubicacion::all();
 
         return view('libros.edit', compact('libro', 'autores', 'generos_literarios', 'ubicaciones'));
@@ -212,7 +212,7 @@ class LibroController extends Controller
         }
 
         if (! empty($request->genero_nombre)) {
-            $genero = GeneroLiterario::firstOrCreate(['nombre' => $request->genero_nombre]);
+            $genero = Genero::firstOrCreate(['nombre' => $request->genero_nombre]);
             $genero_id = $genero->id;
         } else {
             $genero_id = $request->genero_id;
@@ -268,7 +268,7 @@ class LibroController extends Controller
         return view('home', [
             'libros' => $libros,
             'autores' => Autor::all(),
-            'generos' => GeneroLiterario::all(),
+            'generos' => Genero::all(),
         ]);
     }
 }

@@ -8,7 +8,7 @@
 <body class="bg-gray-100 flex items-center justify-center h-screen">
     <div class="bg-white shadow-lg rounded-xl p-8 w-96">
         <h1 class="text-2xl font-bold mb-6 text-center">Iniciar Sesión</h1>
-        <form method="POST" action="{{ route('login.post') }}">
+        <form method="POST" action="{{ route('login') }}">
             @csrf
             <div class="mb-4">
                 <label class="block text-gray-700">Email</label>

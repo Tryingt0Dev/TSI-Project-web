@@ -16,9 +16,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
         AutorSeeder::class,
         UbicacionSeeder::class,
-        GeneroLiterarioSeeder::class,
-        CopiaSeeder::class,
+        GeneroSeeder::class,
         LibroSeeder::class,
+        CopiaSeeder::class,
         UserSeeder::class,
         AlumnoSeeder::class,
         PrestamoSeeder::class,

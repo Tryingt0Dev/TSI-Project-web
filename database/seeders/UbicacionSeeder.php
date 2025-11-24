@@ -10,11 +10,11 @@ class UbicacionSeeder extends Seeder
 {
     public function run(): void
     {
-        Ubicacion::create(['estante' => 'A']);
-        Ubicacion::create(['estante' => 'B']);
-        Ubicacion::create(['estante' => 'C']);
-        Ubicacion::create(['seccion' => 'D']);
-        Ubicacion::create(['seccion' => 'E']);
-        Ubicacion::create(['seccion' => 'F']);
+        Ubicacion::create(['estante' => 'A', 'seccion' => 'Literatura']);
+        Ubicacion::create(['estante' => 'B', 'seccion' => 'Historia']);
+        Ubicacion::create(['estante' => 'C', 'seccion' => 'Ciencia']);
+        Ubicacion::create(['estante' => 'D', 'seccion' => 'Arte']);
+        Ubicacion::create(['estante' => 'E', 'seccion' => 'Filosofía']);
+        Ubicacion::create(['estante' => 'F', 'seccion' => 'Infantil']);
     }
 }

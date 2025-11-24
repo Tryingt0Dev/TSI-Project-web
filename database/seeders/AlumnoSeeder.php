@@ -11,7 +11,7 @@ class AlumnoSeeder extends Seeder
     public function run(): void
     {
         Alumno::create([
-                'rut_alumno' => '12312312-3',
+                'rut_alumno' => '123123123',
                 'nombre_alumno' => 'Isagi',
                 'apellido_alumno' => 'Yoichi',
                 'fecha_registro' => now()->subDays(10),
@@ -20,7 +20,7 @@ class AlumnoSeeder extends Seeder
         ]);
 
         Alumno::create([
-                'rut_alumno' => '45645645-6',
+                'rut_alumno' => '456456456',
                 'nombre_alumno' => 'Yuki',
                 'apellido_alumno' => 'Judai',
                 'fecha_registro' => now()->subDays(10),

@@ -12,24 +12,22 @@ return new class extends Migration
         
         if (! Schema::hasTable('copia')) {
             Schema::create('copia', function (Blueprint $table) {
-                
+                // clave primaria
                 $table->id('id_copia');
 
-                
-                $table->unsignedBigInteger('id_libro_interno');
-
+                // columnas
                 $table->string('estado')->nullable();
                 $table->string('ubicacion')->nullable();
-                $table->timestamps();
 
-                
-                $table->foreign('id_libro_interno')
-                      ->references('id')
-                      ->on('libros')
-                      ->onDelete('cascade');
+                // claves foraneas
+                $table->unsignedBigInteger('id_libro_interno');
+                $table->unsignedBigInteger('id_ubicacion');
+                $table->foreign('id_ubicacion')->references('id_ubicacion')->on('ubicaciones')->onDelete('cascade');
+                $table->foreign('id_libro_interno')->references('id_libro_interno')->on('libros')->onDelete('cascade');
+
+                $table->timestamps();
             });
         }
-
     }
     public function down(): void
     {

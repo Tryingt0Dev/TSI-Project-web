@@ -14,7 +14,10 @@ class Ubicacion extends Model
     // La tabla tiene PK 'id' por lo que no hace falta definir $primaryKey.
     // Si prefieres explicitarlo, usa: protected $primaryKey = 'id';
 
-    protected $fillable = ['estante', 'seccion'];
+    protected $fillable = [
+        'estante',
+        'seccion'
+        ];
 
     // Relación: una ubicación puede tener muchos libros (si aplica)
     public function libros()
