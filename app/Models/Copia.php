@@ -28,6 +28,16 @@ class Copia extends Model
         // Si tu tabla ubicaciones tiene PK 'id' y la FK en copia es 'id_ubicacion'
         return $this->belongsTo(Ubicacion::class, 'id_ubicacion', 'id_ubicacion');
     }
+    public function prestamos()
+    {
+        return $this->belongsToMany(
+            \App\Models\Prestamo::class,
+            'prestamo_copia',
+            'id_copia',
+            'id_prestamo'
+        )->withPivot(['fecha_asignacion','fecha_devolucion_real','devuelto','observaciones'])
+        ->withTimestamps();
+    }
 
     // Observers para recalcular stock (mantengo tu lógica)
     protected static function booted()

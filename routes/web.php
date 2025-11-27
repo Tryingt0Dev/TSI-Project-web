@@ -18,7 +18,7 @@ Route::get('/', function () {
 // Login
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
-Route::post('logout', [LoginController::class, 'logout'])
+Route::post('/logout', [LoginController::class, 'logout'])
     ->name('logout');
 
 // Home
@@ -34,7 +34,10 @@ Route::resource('libros', LibroController::class);
 Route::get('/buscar-libro', [LibroController::class, 'buscarLibro'])->name('buscar-libro');
 Route::get('/libros/{libro}/detalle', [LibroController::class, 'detalle'])
      ->name('libros.detalle');
-Route::patch('copias/{copia}', [CopiaController::class, 'update'])->name('copias.update');
+Route::get('/api/libro/{id}/copias-disponibles', [LibroController::class, 'copiasDisponibles'])
+    ->name('api.libro.copias-disponibles')
+    ->middleware('auth');
+
 // Usuarios
 
 Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
@@ -42,7 +45,9 @@ Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
 });
 // Prestamos
 
-Route::resource('prestamos', PrestamoController::class)->middleware('auth');
+Route::resource('prestamos', \App\Http\Controllers\PrestamoController::class);
+Route::patch('prestamos/{prestamo}/devolver/{copia}', [\App\Http\Controllers\PrestamoController::class, 'devolverCopia'])->name('prestamos.devolverCopia');
+
 
 //alumnos
 Route::middleware(['auth'])->group(function () {

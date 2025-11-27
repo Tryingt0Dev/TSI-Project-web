@@ -10,7 +10,8 @@ use App\Models\Genero;
 use App\Models\Copia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Schema; // <-- IMPORTA Schema
+use Illuminate\Support\Facades\Schema;
+use App\Models\Alumno;
 
 class LibroController extends Controller
 {
@@ -348,10 +349,68 @@ class LibroController extends Controller
 
         $libros = $query->paginate(12);
 
+        // --> IMPORTANTE: pasar $alumnos para el modal de prestamos
+        $alumnos = Alumno::all();
+
         return view('home', [
             'libros' => $libros,
             'autores' => Autor::all(),
             'generos' => Genero::all(),
+            'alumnos' => $alumnos,
         ]);
+    }
+
+    /**
+     * API: copias disponibles de un libro (JSON)
+     *
+     * Devuelve todas las copias asociadas al libro que consideramos "disponibles"
+     * (estado NULL o distinto de los estados de prestado).
+     */
+    public function copiasDisponibles($id)
+    {
+        try {
+            // 1) Buscar libro por su PK (id_libro_interno)
+            $libro = Libro::findOrFail($id);
+
+            // 2) Obtener copias relacionadas por la FK 'id_libro_interno' (NO 'id')
+            $copias = Copia::where('id_libro_interno', $libro->id_libro_interno)
+                ->with('ubicacion')
+                ->where(function($q) {
+                    // disponible = estado NULL o distinto de valores que consideras "prestado"
+                    $q->whereNull('estado')
+                    ->orWhereNotIn('estado', ['prestado', 'Prestada', 'Prestado']);
+                })
+                ->get();
+
+            // 3) Formatear respuesta
+            $out = $copias->map(function($c) {
+                $ubic = null;
+                if ($c->ubicacion) {
+                    $parts = [];
+                    if (!empty($c->ubicacion->estante)) $parts[] = $c->ubicacion->estante;
+                    if (!empty($c->ubicacion->seccion)) $parts[] = $c->ubicacion->seccion;
+                    if (!empty($c->ubicacion->descripcion)) $parts[] = $c->ubicacion->descripcion;
+                    $ubic = implode(' / ', $parts);
+                }
+
+                return [
+                    'id_copia'    => $c->id_copia ?? $c->id ?? null,
+                    'id_ubicacion'=> $c->id_ubicacion ?? null,
+                    'estado'      => $c->estado ?? null,
+                    'ubicacion'   => $ubic,
+                ];
+            });
+
+            return response()->json($out, 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Libro no encontrado'], 404);
+        } catch (\Throwable $e) {
+            \Log::error('Error en copiasDisponibles: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'libro_id' => $id,
+            ]);
+            return response()->json(['message' => 'Error interno al obtener copias'], 500);
+        }
     }
 }
