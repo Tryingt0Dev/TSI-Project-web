@@ -102,7 +102,7 @@
                                         data-libro-id="{{ $libro->id_libro_interno }}"
                                         data-libro-titulo="{{ e($libro->titulo) }}">
                                     <i class="bi bi-hand-index-thumb me-1"></i> Prestar
-                                </button>
+                                </button>   
                             </div>
                         </div>
                     </div>

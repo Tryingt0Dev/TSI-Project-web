@@ -10,7 +10,7 @@ class PrestamoSeeder extends Seeder
     public function run(): void
     {
         Prestamo::create([
-            'id_usuario' => 1,
+            'user_id' => 1,
             'rut_alumno' => '123123123',
             'id_copia' => 1,
             'fecha_inicio' => now()->subDays(3), // para la fecha manual '2025-11-01'
@@ -19,7 +19,7 @@ class PrestamoSeeder extends Seeder
         ]);
 
         Prestamo::create([
-            'id_usuario' => 2,
+            'user_id' => 2,
             'rut_alumno' => '456456456',
             'id_copia' => 4,
             'fecha_inicio' => now()->subDays(10),
