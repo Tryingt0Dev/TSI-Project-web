@@ -105,6 +105,25 @@
                                     <i class="bi bi-hand-index-thumb me-1"></i> Prestar
                                 </button>
                             </div>
+                            
+                            <div class="d-flex align-items-center mt-2">
+                                {{-- Acciones --}}
+                                <tr>  
+                                    <td class="text-end action-cell" style="min-width:160px;">
+                                        <div class="action-btns d-inline-flex align-items-center" role="group" aria-label="Acciones libro">
+                                            <a href="{{ route('libros.edit', $libro->id_libro_interno) }}" 
+                                            class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
+                                            </a>
+
+                                            <a href="{{ route('libros.detalle', $libro->id_libro_interno) }}" 
+                                            class="btn btn-sm btn-outline-secondary btn-action mx-1" data-bs-toggle="tooltip" title="Ver">
+                                            <i class="bi bi-eye"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </div>
                         </div>
 
                     </div>
