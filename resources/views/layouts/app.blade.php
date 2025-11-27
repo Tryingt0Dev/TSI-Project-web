@@ -27,7 +27,8 @@
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: #1f2937 !important;">
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm fixed-top w-100" style="background: #1f2937 !important; z-index: 999;">
+
     <div class="container-fluid">
 
         {{-- LOGO --}}
@@ -102,7 +103,7 @@
     @csrf
 </form>
 
-<main class="container mt-4">
+<main class="container" style="padding-top: 90px;">
     @yield('content')
 </main>
 
