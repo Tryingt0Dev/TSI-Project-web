@@ -44,7 +44,6 @@ Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
 
 Route::resource('prestamos', PrestamoController::class)->middleware('auth');
 
-
 //alumnos
 Route::middleware(['auth'])->group(function () {
     Route::resource('alumnos', AlumnoController::class)->except(['create','store','show']);
