@@ -1,0 +1,38 @@
+
+/* Limita texto a 2 líneas con ellipsis (compatible WebKit). Úsalo para título y descripción */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
+/* Asegura que el área central crezca y el footer (botón) quede abajo */
+.card-body.book-card-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Contenedor que ocupa el espacio disponible entre título/info y badges+botón */
+.book-info {
+  flex: 1 1 auto; /* crece para empujar footer */
+  min-height: 0;  /* importante para que flex children con overflow funcionen */
+}
+
+/* Footer fijo en la parte inferior de la card */
+.card-footer-book {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+  margin-top: .75rem;
+}
+
+/* Evita que el botón cambie de tamaño y fuerza salto si no cabe */
+.card-footer-book .btn {
+  white-space: nowrap;
+}

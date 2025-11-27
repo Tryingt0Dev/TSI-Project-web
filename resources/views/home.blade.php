@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Catálogo de Libros')
-
+<href rel="stylesheet" href="{{ asset('css/home.css') }}">
 @section('content')
 <div class="container py-4">
 
@@ -65,46 +65,48 @@
         @forelse($libros as $libro)
             <div class="col">
                 <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden book-card">
-
                     {{-- Imagen --}}
                     <img src="https://covers.openlibrary.org/b/isbn/{{ $libro->isbn_libro }}-L.jpg"
-                         class="card-img-top"
-                         alt="{{ $libro->titulo }}"
-                         onerror="this.src='/images/no_cover.png'">
+                        class="card-img-top"
+                        alt="{{ $libro->titulo }}"
+                        onerror="this.src='/images/no_cover.png'">
 
-                    <div class="card-body d-flex flex-column">
+                    <div class="card-body book-card-body p-3">
 
                         {{-- Título --}}
-                        <h5 class="card-title fw-bold text-truncate" title="{{ $libro->titulo }}">
+                        <h5 class="card-title fw-bold line-clamp-2 mb-2" title="{{ $libro->titulo }}">
                             {{ $libro->titulo }}
                         </h5>
 
-                        {{-- Info --}}
-                        <p class="card-text mb-3 text-muted small">
-                            <strong>Autores:</strong> {{ $libro->autores->pluck('nombre')->join(', ') ?: 'Desconocido' }} <br>
-                            <strong>Género:</strong> {{ $libro->genero->nombre ?? 'N/A' }}
-                        </p>
+                        {{-- Info (ocupa espacio flexible) --}}
+                        <div class="book-info">
+                            <p class="card-text mb-2 text-muted small line-clamp-2">
+                                <strong>Autores:</strong> {{ $libro->autores->pluck('nombre')->join(', ') ?: 'Desconocido' }} <br>
+                                <strong>Género:</strong> {{ $libro->genero->nombre ?? 'N/A' }}
+                            </p>
+                        </div>
 
-                        {{-- Badges stock --}}
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <div>
-                                <span class="badge bg-primary">Total: {{ $libro->stock_total }}</span>
+                        {{-- Footer: badges + boton (siempre abajo) --}}
+                        <div class="card-footer-book">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary">Total: {{ $libro->stock_total ?? 0 }}</span>
                                 @if($libro->stock_disponible > 0)
                                     <span class="badge bg-success">Disponible: {{ $libro->stock_disponible }}</span>
                                 @else
                                     <span class="badge bg-danger">Sin stock</span>
                                 @endif
                             </div>
-
-                            <div>
+                            <h1><br></b></h1>
+                            <div class="d-flex align-items-center">
                                 <button type="button"
                                         class="btn btn-sm btn-outline-primary btn-prestar"
                                         data-libro-id="{{ $libro->id_libro_interno }}"
                                         data-libro-titulo="{{ e($libro->titulo) }}">
                                     <i class="bi bi-hand-index-thumb me-1"></i> Prestar
-                                </button>   
+                                </button>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
