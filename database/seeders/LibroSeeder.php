@@ -22,7 +22,8 @@ class LibroSeeder extends Seeder
         $genero2 = Genero::where('nombre', 'Fábula')->first();
         $ubicacion1 = Ubicacion::where('estante', 'A')->first();
         $ubicacion2 = Ubicacion::where('estante', 'B')->first();
-        Libro::create([
+
+        $Libro1 = Libro::create([
             'id_libro_interno' => 1,
             'isbn_libro' => '607-071-4865',
             'titulo' => 'Cien años de soledad',
@@ -30,23 +31,23 @@ class LibroSeeder extends Seeder
             'editorial' => 'Editorial Sudamericana',
             'stock_total' => 10,
             'stock_disponible' => 10,
-            'id_autor' => $autor1->id_autor,
             'id_genero' => $genero1->id_genero,
             'id_ubicacion' => $ubicacion1->id_ubicacion,
         ]);
+        $Libro1->autores()->attach($autor1->id_autor);
 
-        Libro::create([
+
+        $Libro2 = Libro::create([
             'id_libro_interno' => 2,
             'isbn_libro' => '978-987-7514308',
             'titulo' => 'El Principito',
-            'id_autor' => $autor2->id_autor,
-            'id_genero' => $genero2->id_genero,
             'editorial' => 'Editorial Gallimard',
             'fecha_publicacion' => '1943-01-01',
             'stock_total' => 5,
             'stock_disponible' => 5,
+            'id_genero' => $genero2->id_genero,
             'id_ubicacion' => $ubicacion2->id_ubicacion,
         ]);
-
+        $Libro2->autores()->attach($autor2->id_autor);
     }
 }

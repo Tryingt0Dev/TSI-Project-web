@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
         CopiaSeeder::class,
         UserSeeder::class,
         AlumnoSeeder::class,
-        
+        PrestamoSeeder::class,
         ]);
     }
 }

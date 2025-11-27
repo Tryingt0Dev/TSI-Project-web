@@ -16,7 +16,7 @@ return new class extends Migration
                 $table->id('id_copia');
 
                 // columnas
-                $table->string('estado')->nullable();
+                $table->string('estado')->nullable()->default('Disponible');
 
                 // claves foraneas
                 $table->unsignedBigInteger('id_libro_interno');
