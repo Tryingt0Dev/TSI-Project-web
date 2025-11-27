@@ -13,15 +13,27 @@ class CopiaSeeder extends Seeder
         $libros = Libro::all();
 
         foreach ($libros as $libro) {
-            // crea 3 copias por libro de ejemplo
-            for ($i = 0; $i < 3; $i++) {
+            // crea 4 copias por libro de ejemplo
                 Copia::create([
                     'id_libro_interno' => $libro->id_libro_interno,
-                    'estado' => 'bueno',
-                    'ubicacion' => 'estantería ' . ($libro->ubicacion ?? 'A'),
+                    'estado' => 'Prestado',
                     'id_ubicacion' => $libro->id_ubicacion,
                 ]);
-            }
+                Copia::create([
+                    'id_libro_interno' => $libro->id_libro_interno,
+                    'estado' => 'Disponible',
+                    'id_ubicacion' => $libro->id_ubicacion,
+                ]);
+                Copia::create([
+                    'id_libro_interno' => $libro->id_libro_interno,
+                    'estado' => 'Disponible',
+                    'id_ubicacion' => $libro->id_ubicacion,
+                ]);
+                Copia::create([
+                    'id_libro_interno' => $libro->id_libro_interno,
+                    'estado' => 'Perdido',
+                    'id_ubicacion' => $libro->id_ubicacion,
+                ]);
         }
     }
 }

@@ -14,9 +14,6 @@ use Illuminate\Support\Facades\Schema; // <-- IMPORTA Schema
 
 class LibroController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $query = Libro::with(['autores', 'genero'])
@@ -58,9 +55,6 @@ class LibroController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $autores = Autor::all();
@@ -70,9 +64,6 @@ class LibroController extends Controller
         return view('libros.create', compact('autores', 'ubicaciones', 'generos_literarios'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -107,16 +98,7 @@ class LibroController extends Controller
             $libro->fecha_publicacion = $request->fecha_publicacion;
             $libro->editorial = $request->input('editorial');
             $libro->id_genero = $generoId;
-
-            // --- Asignar SOLO si las columnas existen en la BD ---
-            if (Schema::hasColumn('libros', 'id_autor')) {
-                // ponemos explícitamente null si quieres mantener la columna legacy
-                $libro->id_autor = null;
-            }
-
-            if (Schema::hasColumn('libros', 'id_ubicacion')) {
-                $libro->id_ubicacion = $idUbicacion !== null ? $idUbicacion : null;
-            }
+            $libro->id_autor = $autorId;
 
             // Guardamos el libro
             $libro->save();
@@ -154,30 +136,11 @@ class LibroController extends Controller
 
             // Crear copias solicitadas (si no se indicó ubicacion, las copias tendrán id_ubicacion NULL)
             for ($i = 0; $i < $numCopias; $i++) {
-                // determinar campo correcto en la tabla copia:
-                if (Schema::hasColumn('copia', 'id_ubicacion')) {
-                    Copia::create([
-                        'id_libro_interno' => $libro->id_libro_interno,
-                        'estado' => 'disponible',
-                        'id_ubicacion' => $idUbicacion !== null ? $idUbicacion : null,
-                    ]);
-                } else {
-                    // si la tabla copia usa otro nombre (ej: id_ubicaciones) acomodamos
-                    $campo = Schema::hasColumn('copia', 'id_ubicaciones') ? 'id_ubicaciones' : null;
-                    if ($campo) {
-                        Copia::create([
-                            'id_libro_interno' => $libro->id_libro_interno,
-                            'estado' => 'disponible',
-                            $campo => $idUbicacion !== null ? $idUbicacion : null,
-                        ]);
-                    } else {
-                        // crear sin ubicación si no existe ninguna columna relacionada
-                        Copia::create([
-                            'id_libro_interno' => $libro->id_libro_interno,
-                            'estado' => 'disponible',
-                        ]);
-                    }
-                }
+                Copia::create([
+                    'id_libro_interno' => $libro->id_libro_interno,
+                    'estado' => 'disponible',
+                    'id_ubicaciones' => $idUbicaciones,
+                ]);
             }
 
             // Recalcular stock
@@ -327,9 +290,9 @@ class LibroController extends Controller
      */
     public function destroy($id)
     {
-        $libro = Libro::findOrFail($id);
-        $libro->delete(); // soft delete
-        return redirect()->route('libros.index')->with('success','Libro eliminado correctamente');
+        Libro::withTrashed()->where('id', $id)->forceDelete();
+
+        return redirect()->route('libros.index')->with('success', 'Libro eliminado correctamente');
     }
 
     public function catalogo(Request $request)

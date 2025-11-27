@@ -17,7 +17,6 @@ return new class extends Migration
 
                 // columnas
                 $table->string('estado')->nullable();
-                $table->string('ubicacion')->nullable();
 
                 // claves foraneas
                 $table->unsignedBigInteger('id_libro_interno');

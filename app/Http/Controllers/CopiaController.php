@@ -20,7 +20,6 @@ class CopiaController extends Controller
         $data = $request->validate([
             'id_libro_interno' => 'required|exists:libro,id_libro_interno',
             'estado' => 'nullable|string',
-            'ubicacion' => 'nullable|string',
         ]);
 
         $copia = Copia::create($data);
