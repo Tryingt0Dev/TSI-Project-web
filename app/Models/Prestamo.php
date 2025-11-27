@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Prestamo extends Model
 {
     protected $table = 'prestamos';
+    protected $primaryKey = 'id_prestamo';
 
     protected $fillable = [
         'id_usuario',
@@ -14,7 +15,7 @@ class Prestamo extends Model
         'id_copia',
         'fecha_inicio',
         'fecha_limite',
-        'entregado',
+        'estado',
     ];
 
     public $timestamps = false;

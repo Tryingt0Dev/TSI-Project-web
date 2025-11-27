@@ -12,9 +12,6 @@ use Illuminate\Support\Facades\DB;
 
 class LibroController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $query = Libro::with(['autor', 'genero'])
@@ -53,9 +50,6 @@ class LibroController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $autores = Autor::all();
@@ -65,9 +59,6 @@ class LibroController extends Controller
         return view('libros.create', compact('autores', 'ubicaciones', 'generos_literarios'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -95,7 +86,7 @@ class LibroController extends Controller
         }
 
         $numCopias = (int) ($request->input('num_copias', 0));
-        $idUbicaciones = $request->input('id_ubicaciones', null);
+        $idUbicaciones = $request->input('id_ubicacion', null);
 
         
         DB::transaction(function () use ($request, $generoId, $autorId, $numCopias, $idUbicaciones, &$libro) {
@@ -106,6 +97,7 @@ class LibroController extends Controller
             $libro->editorial = $request->input('editorial');
             $libro->id_genero = $generoId;
             $libro->id_autor = $autorId;
+            $libro->id_ubicacion = $idUbicaciones;
 
             // Guardamos el libro
             $libro->save();
@@ -114,8 +106,8 @@ class LibroController extends Controller
             for ($i = 0; $i < $numCopias; $i++) {
                 Copia::create([
                     'id_libro_interno' => $libro->id_libro_interno,
-                    'estado' => 'disponible',
-                    'id_ubicaciones' => $idUbicaciones,
+                    'estado' => 'Disponible',
+                    'id_ubicacion' => $idUbicaciones,
                 ]);
             }
             // Recalcular stock
@@ -238,7 +230,7 @@ class LibroController extends Controller
      */
     public function destroy(string $id)
     {
-        Libro::withTrashed()->where('id', $id)->forceDelete();
+        Libro::withTrashed()->where('id_libro_interno', $id)->forceDelete();
 
         return redirect()->route('libros.index')->with('success', 'Libro eliminado correctamente');
     }

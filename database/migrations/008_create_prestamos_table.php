@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->integer('id_copia');
             $table->date('fecha_inicio');
             $table->date('fecha_limite');
-            $table->tinyInteger('entregado')->default(0); // 0: Pendiente, 1: Devuelto, 2: Perdido
+            $table->string('estado')->default('Pendiente'); // 0: Pendiente, 1: Devuelto, 2: Perdido
 
             // claves foraneas
             $table->unsignedBigInteger('id_usuario');

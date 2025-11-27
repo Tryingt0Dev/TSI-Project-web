@@ -15,7 +15,7 @@ class PrestamoSeeder extends Seeder
             'id_copia' => 1,
             'fecha_inicio' => now()->subDays(3), // para la fecha manual '2025-11-01'
             'fecha_limite' => now()->addDays(7),
-            'entregado' => 0, // Pendiente
+            'estado' => 'Pendiente', // Pendiente
         ]);
 
         Prestamo::create([
@@ -24,7 +24,7 @@ class PrestamoSeeder extends Seeder
             'id_copia' => 4,
             'fecha_inicio' => now()->subDays(10),
             'fecha_limite' => now()->subDays(2),
-            'entregado' => 1, // Devuelto
+            'estado' => 'Pendiente', // Devuelto
         ]);
     }
 }
