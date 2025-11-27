@@ -16,7 +16,7 @@ Route::get('/', function () {
 
 // Login
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+Route::post('/login', [LoginController::class, 'login']);
 Route::post('logout', [LoginController::class, 'logout'])
     ->name('logout');
 
@@ -41,4 +41,4 @@ Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
 });
 // Prestamos
 
-Route::get('/prestamos', [PrestamoController::class, 'index'])->middleware('auth');
+Route::resource('prestamos', PrestamoController::class)->middleware('auth');

@@ -10,40 +10,40 @@ class Libro extends Model
 {
     use HasFactory;
     use SoftDeletes;
-    protected $primaryKey = 'id';
+    protected $table = 'libros';
+    protected $primaryKey = 'id_libro_interno';
+    public $incrementing = true;
+    protected $keyType = 'int';
     
     protected $fillable = [
-        'id',
+        'id_libro_interno',
         'isbn_libro',
         'titulo',
         'fecha_publicacion',
         'editorial',
-        'genero_id',
+        'id_genero',
         'stock_total',      
         'stock_disponible',
-        'ubicacion_id',   
-        'autor_id',       
+        'id_ubicacion',   
+        'id_autor',       
         'imagen',
     ];
     
-
     public function autor()
     {
-        return $this->belongsTo(Autor::class);
+        return $this->belongsTo(Autor::class, 'id_autor', 'id_autor');
     }
-
     public function ubicacion()
     {
-        return $this->belongsTo(Ubicacion::class);
+        return $this->belongsTo(Ubicacion::class, 'id_ubicacion', 'id_ubicacion');
     }
-
     public function genero()
     {
-        return $this->belongsTo(GeneroLiterario::class, 'genero_id');
+        return $this->belongsTo(Genero::class, 'id_genero', 'id_genero');
     }
     public function copias(): HasMany
     {
-        return $this->hasMany(Copia::class, 'id_libro_interno', 'id');
+        return $this->hasMany(Copia::class, 'id_libro_interno', 'id_libro_interno');
     }
     public function recalcularStock(): void
     {

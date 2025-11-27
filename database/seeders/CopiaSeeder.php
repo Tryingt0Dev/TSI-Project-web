@@ -18,7 +18,8 @@ class CopiaSeeder extends Seeder
                 Copia::create([
                     'id_libro_interno' => $libro->id_libro_interno,
                     'estado' => 'bueno',
-                    'ubicacion' => 'estantería A',
+                    'ubicacion' => 'estantería ' . ($libro->ubicacion ?? 'A'),
+                    'id_ubicacion' => $libro->id_ubicacion,
                 ]);
             }
         }

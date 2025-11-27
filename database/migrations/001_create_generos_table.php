@@ -7,17 +7,21 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-       Schema::create('autores', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre');
-            $table->string('apellido')->nullable();
+        Schema::create('generos', function (Blueprint $table) {
+            $table->engine = 'InnoDB';
+
+            // clave primaria
+            $table->id('id_genero');
+
+            // columnas
+            $table->string('nombre')->unique();
+
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('autores');
+        Schema::dropIfExists('generos');
     }
-    
 };

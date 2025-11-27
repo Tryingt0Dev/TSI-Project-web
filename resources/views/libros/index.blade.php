@@ -54,7 +54,7 @@
                     <select name="autor" class="form-select">
                         <option value="">-- Todos los autores --</option>
                         @foreach($autores as $autor)
-                            <option value="{{ $autor->id }}" {{ request('autor') == $autor->id ? 'selected' : '' }}>
+                            <option value="{{ $autor->id_autor }}" {{ request('autor') == $autor->id_autor ? 'selected' : '' }}>
                                 {{ $autor->nombre }}
                             </option>
                         @endforeach
@@ -66,7 +66,7 @@
                     <select name="genero" class="form-select">
                         <option value="">-- Todos los géneros --</option>
                         @foreach($generos as $genero)
-                            <option value="{{ $genero->id }}" {{ request('genero') == $genero->id ? 'selected' : '' }}>
+                            <option value="{{ $genero->id_genero }}" {{ request('genero') == $genero->id_genero ? 'selected' : '' }}>
                                 {{ $genero->nombre }}
                             </option>
                         @endforeach
@@ -129,15 +129,15 @@
 
                                 {{-- Acciones --}}
                                 <td class="text-end">
-                                    <a href="{{ route('libros.edit', $libro->id) }}" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="tooltip" title="Editar">
+                                    <a href="{{ route('libros.edit', $libro->id_libro_interno) }}" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="tooltip" title="Editar">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
 
-                                    <a href="{{ route('libros.detalle', $libro->id) }}" 
+                                    <a href="{{ route('libros.detalle', $libro->id_libro_interno) }}" 
                                         class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="tooltip" title="Ver"><i class="bi bi-eye"></i>
                                     </a>
 
-                                    <form action="{{ route('libros.destroy', $libro->id) }}" method="POST" style="display:inline"
+                                    <form action="{{ route('libros.destroy', $libro->id_libro_interno) }}" method="POST" style="display:inline"
                                         onsubmit="return confirm('¿Confirmas que quieres eliminar el libro: {{ addslashes($libro->titulo) }} ?');">
                                         @csrf
                                         @method('DELETE')

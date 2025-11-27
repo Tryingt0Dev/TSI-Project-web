@@ -65,7 +65,7 @@
                     <select name="genero_id" id="genero_select" class="form-select">
                         <option value="">-- Seleccione un género --</option>
                         @foreach($generos_literarios as $genero)
-                            <option value="{{ $genero->id }}" {{ old('genero_id') == $genero->id ? 'selected' : '' }}>
+                            <option value="{{ $genero->id_genero }}" {{ old('genero_id') == $genero->id_genero ? 'selected' : '' }}>
                                 {{ $genero->nombre }}
                             </option>
                         @endforeach
@@ -83,17 +83,17 @@
                     <select name="autor_id" id="autor_select" class="form-select">
                         <option value="">-- Seleccione un autor --</option>
                         @foreach($autores as $autor)
-                            <option value="{{ $autor->id }}" {{ old('autor_id') == $autor->id ? 'selected' : '' }}>{{ $autor->nombre }}</option>
+                            <option value="{{ $autor->id_autor }}" {{ old('autor_id') == $autor->id_autor ? 'selected' : '' }}>{{ $autor->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div class="col-md-6">
                     <label class="form-label">Ubicación por defecto para las copias</label>
-                    <select name="id_ubicaciones" class="form-select">
+                    <select name="id_ubicacion" class="form-select">
                         <option value="">-- Seleccione una ubicación (opcional) --</option>
                         @foreach($ubicaciones as $u)
-                            <option value="{{ $u->id }}" {{ old('id_ubicaciones') == $u->id ? 'selected' : '' }}>
+                            <option value="{{ $u->id_ubicacion }}" {{ old('id_ubicacion') == $u->id_ubicacion ? 'selected' : '' }}>
                                 {{ $u->estante }}{{ $u->seccion ? ' - ' . $u->seccion : '' }}
                             </option>
                         @endforeach

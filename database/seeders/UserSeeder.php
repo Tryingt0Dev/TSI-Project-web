@@ -21,6 +21,7 @@ class UserSeeder extends Seeder
             'email' => 'catita@coffeandcatt.cl',
             'password' => Hash::make('password'),
             'rol' => 0, // 0: admin, 1: bibliotecario
+            //'fecha_registro' => now()->subDays(25)
         
         ]);
         User::create([
@@ -30,6 +31,7 @@ class UserSeeder extends Seeder
             'email' => 'admin@admin.com',
             'password' => Hash::make('123456'),
             'rol' => 0, // admin
+            //'fecha_registro' => now()->subDays(25)
         ]);
     }
 }

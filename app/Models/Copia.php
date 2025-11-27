@@ -12,21 +12,21 @@ class Copia extends Model
     protected $primaryKey = 'id_copia';
     public $incrementing = true;
     protected $keyType = 'int';
-    protected $fillable = ['id_libro_interno','estado','id_ubicaciones'];
+    protected $fillable = ['id_libro_interno','estado','id_ubicacion'];
 
     // Relaciones
 
     // Copia pertenece a un libro
     public function libro()
     {
-        return $this->belongsTo(Libro::class, 'id_libro_interno', 'id');
+        return $this->belongsTo(Libro::class, 'id_libro_interno', 'id_libro_interno');
     }
 
     // Copia pertenece a una ubicacion (esta es la que faltaba)
     public function ubicacion()
     {
-        // Si tu tabla ubicaciones tiene PK 'id' y la FK en copia es 'id_ubicaciones'
-        return $this->belongsTo(Ubicacion::class, 'id_ubicaciones', 'id');
+        // Si tu tabla ubicaciones tiene PK 'id' y la FK en copia es 'id_ubicacion'
+        return $this->belongsTo(Ubicacion::class, 'id_ubicacion', 'id_ubicacion');
     }
 
     // Observers para recalcular stock (mantengo tu lógica)
