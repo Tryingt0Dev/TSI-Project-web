@@ -34,7 +34,10 @@
                 <div class="col-md-8">
                     <div class="mb-2"><strong>ISBN:</strong> {{ $libro->isbn_libro ?? 'N/A' }}</div>
                     <div class="mb-2"><strong>Título:</strong> {{ $libro->titulo }}</div>
-                    <div class="mb-2"><strong>Autor:</strong> {{ $libro->autor->nombre ?? 'Desconocido' }}</div>
+                    <div class="mb-2">
+                        <strong>Autores:</strong>
+                        {{ $libro->autores->pluck('nombre')->join(', ') ?: 'Desconocido' }}
+                    </div>
                     <div class="mb-2"><strong>Género:</strong> {{ $libro->genero->nombre ?? 'N/A' }}</div>
                     <div class="mb-2"><strong>Editorial:</strong> {{ $libro->editorial ?? 'N/A' }}</div>
                     <div class="mb-2"><strong>Fecha de publicación:</strong> {{ $libro->fecha_publicacion ?? 'N/A' }}</div>

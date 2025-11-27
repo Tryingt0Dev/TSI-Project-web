@@ -107,7 +107,9 @@
                                     <div class="fw-semibold">{{ $libro->titulo }}</div>
                                 </td>
 
-                                <td>{{ $libro->autor->nombre ?? '-' }}</td>
+                                <td>
+                                    {{ $libro->autores->pluck('nombre')->join(', ') ?: '-' }}
+                                </td>
 
                                 <td>{{ $libro->genero->nombre ?? '-' }}</td>
 
@@ -128,23 +130,28 @@
                                 </td>
 
                                 {{-- Acciones --}}
-                                <td class="text-end">
-                                    <a href="{{ route('libros.edit', $libro->id_libro_interno) }}" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="tooltip" title="Editar">
+                                <td class="text-end action-cell" style="min-width:160px;">
+                                    <div class="action-btns d-inline-flex align-items-center" role="group" aria-label="Acciones libro">
+                                        <a href="{{ route('libros.edit', $libro->id_libro_interno) }}" 
+                                        class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Editar">
                                         <i class="bi bi-pencil-square"></i>
-                                    </a>
+                                        </a>
 
-                                    <a href="{{ route('libros.detalle', $libro->id_libro_interno) }}" 
-                                        class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="tooltip" title="Ver"><i class="bi bi-eye"></i>
-                                    </a>
+                                        <a href="{{ route('libros.detalle', $libro->id_libro_interno) }}" 
+                                        class="btn btn-sm btn-outline-secondary btn-action mx-1" data-bs-toggle="tooltip" title="Ver">
+                                        <i class="bi bi-eye"></i>
+                                        </a>
 
-                                    <form action="{{ route('libros.destroy', $libro->id_libro_interno) }}" method="POST" style="display:inline"
-                                        onsubmit="return confirm('¿Confirmas que quieres eliminar el libro: {{ addslashes($libro->titulo) }} ?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                        <form action="{{ route('libros.destroy', $libro->id_libro_interno) }}" method="POST" 
+                                            class="d-inline-flex align-items-center m-0 p-0 delete-form" 
+                                            onsubmit="return confirm('¿Confirmas que quieres eliminar el libro: {{ addslashes($libro->titulo) }} ?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger btn-action" title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty

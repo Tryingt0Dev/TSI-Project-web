@@ -81,7 +81,7 @@
 
                         {{-- Info --}}
                         <p class="card-text mb-3 text-muted small">
-                            <strong>Autor:</strong> {{ $libro->autor->nombre ?? 'Desconocido' }} <br>
+                            <strong>Autores:</strong> {{ $libro->autores->pluck('nombre')->join(', ') ?: 'Desconocido' }} <br>
                             <strong>Género:</strong> {{ $libro->genero->nombre ?? 'N/A' }}
                         </p>
 

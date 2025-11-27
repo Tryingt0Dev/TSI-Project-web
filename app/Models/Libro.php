@@ -33,6 +33,15 @@ class Libro extends Model
     {
         return $this->belongsTo(Autor::class, 'id_autor', 'id_autor');
     }
+    public function autores()
+    {
+        return $this->belongsToMany(
+            \App\Models\Autor::class,
+            'autor_libro',
+            'id_libro_interno', // FK en la tabla pivote hacia libros
+            'id_autor'         // FK en la tabla pivote hacia autores
+        )->withTimestamps();
+    }
     public function ubicacion()
     {
         return $this->belongsTo(Ubicacion::class, 'id_ubicacion', 'id_ubicacion');
@@ -45,6 +54,7 @@ class Libro extends Model
     {
         return $this->hasMany(Copia::class, 'id_libro_interno', 'id_libro_interno');
     }
+    
     public function recalcularStock(): void
     {
         

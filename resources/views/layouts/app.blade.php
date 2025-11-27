@@ -27,7 +27,8 @@
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg navbar-dark shadow-sm fixed-top w-100" style="background: #1f2937 !important; z-index: 999;">
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm fixed-top w-100"
+     style="background:#1f2937 !important; z-index: 1050;">
 
     <div class="container-fluid">
 
@@ -54,7 +55,11 @@
                 <li class="nav-item">
                     <a class="nav-link {{ request()->is('libros') ? 'active-nav' : '' }}" href="{{ url('/libros') }}">Libros</a>
                 </li>
-
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->is('alumnos*') ? 'active-nav' : '' }}" href="{{ route('alumnos.index') }}">
+                        Alumnos
+                    </a>
+                </li>
                 @auth
                     @if(Auth::user()->rol == 0)
                         <li class="nav-item">
@@ -103,7 +108,8 @@
     @csrf
 </form>
 
-<main class="container" style="padding-top: 90px;">
+<main class="container" style="padding: top 29px;">
+    <a> <br></a>     
     @yield('content')
 </main>
 

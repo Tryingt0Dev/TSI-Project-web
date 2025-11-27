@@ -1,152 +1,445 @@
+/* ==========================================================================
+   VARIABLES GLOBALES
+   ========================================================================== */
 :root{
-  --bg:#E9F2FF;
+  --bg: #E9F2FF;
   --card-bg: rgba(255,255,255,0.85);
-  --accent:#1F6FEB;
-  --muted:#6B7280;
-  --danger:#DC2626;
+  --accent: #1F6FEB;
+  --muted: #6B7280;
+  --danger: #DC2626;
   --glass-border: rgba(255,255,255,0.6);
   --shadow: 0 6px 30px rgba(32,41,54,0.12);
   --radius: 16px;
+  --nav-height: 72px; /* valor por defecto, se recalcula por JS */
+  --content-max-width: 1100px;
+
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
-/* Page layout */
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  background: linear-gradient(180deg,var(--bg),#ffffff 40%);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:32px;
-  color:#0f172a;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
+/* ==========================================================================
+   RESET / BASE
+   - Reglas globales mínimas que no deberían interferir con Bootstrap
+   ========================================================================== */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: #f8f9fa; /* fondo por defecto para las vistas públicas/admin */
+  color: #0f172a;
+  padding-top: var(--nav-height); /* espacio para navbar fixed */
+  transition: padding-top 140ms ease;
 }
 
-/* Main card */
-.page { width:100%; max-width:1100px; }
-.card{
-  width:100%;
-  display:grid;
+/* ==========================================================================
+   CLASES ESPECÍFICAS DE PÁGINA
+   - .auth-page: estilos exclusivos del login/registro que antes estaban en body
+   ========================================================================== */
+.auth-page {
+  background: linear-gradient(180deg, var(--bg), #ffffff 40%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+/* ==========================================================================
+   LAYOUT / CONTENEDORES
+   ========================================================================== */
+.page { width: 100%; max-width: var(--content-max-width); margin: 0 auto; }
+.container { max-width: var(--content-max-width); margin-left: auto; margin-right: auto; }
+
+/* ==========================================================================
+   COMPONENTE: CARD (usado en login / modales / widgets)
+   ========================================================================== */
+.card {
+  width: 100%;
+  display: grid;
   grid-template-columns: 1fr;
   background: var(--card-bg);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   border: 1px solid var(--glass-border);
-  overflow:hidden;
+  overflow: hidden;
   backdrop-filter: blur(6px) saturate(120%);
 }
 
-/* Header */
-.card-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:20px;
-  padding:20px 28px;
-  border-bottom:1px solid rgba(15,23,42,0.04);
+/* Card header (shared) */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 28px;
+  border-bottom: 1px solid rgba(15,23,42,0.04);
   background: linear-gradient(90deg, rgba(31,111,235,0.06), transparent);
 }
 
-.brand{ display:flex; align-items:center; gap:12px; }
-.brand-icon{ width:54px; height:54px; fill:var(--accent); flex-shrink:0; border-radius:8px; padding:8px; background: linear-gradient(180deg, rgba(31,111,235,0.12), rgba(31,111,235,0.06)); }
-.brand-title{ margin:0; font-size:18px; font-weight:700; color:#0b1220; }
-.brand-sub{ margin:0; font-size:12px; color:var(--muted); }
+/* Card body */
+.card-body { padding: 28px; display: flex; flex-direction: column; gap: 12px; }
+.card-footer { padding: 16px 28px; background: linear-gradient(180deg, transparent, rgba(15,23,42,0.015)); text-align: center; font-size: 13px; color: var(--muted); }
 
-/* Search */
-.search-wrapper{ width:400px; max-width:44%; position:relative; }
-.search-field{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:12px; padding:6px; border:1px solid rgba(7,10,25,0.04);}
-.search-field input{
-  border:0; outline:0; font-size:14px; padding:8px; min-width:0; flex:1;
+/* ==========================================================================
+   BRAND / HEADER (logo + subtítulo)
+   ========================================================================== */
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon {
+  width: 54px;
+  height: 54px;
+  fill: var(--accent);
+  flex-shrink: 0;
+  border-radius: 8px;
+  padding: 8px;
+  background: linear-gradient(180deg, rgba(31,111,235,0.12), rgba(31,111,235,0.06));
 }
-.btn-icon{
-  border:0; background:transparent; cursor:pointer; font-size:14px; padding:6px; border-radius:8px;
-}
-.search-results{
-  list-style:none; margin:6px 0 0 0; padding:6px; position:absolute; left:0; right:0; background:#fff; border-radius:10px; max-height:220px; overflow:auto;
-  box-shadow: 0 8px 20px rgba(15,23,42,0.08); border:1px solid rgba(7,10,25,0.04); z-index:40;
-  display:none;
-}
-.search-results li{
-  padding:10px 12px; font-size:14px; color:#07122a; cursor:pointer;
-}
-.search-results li + li{ border-top:1px solid rgba(7,10,25,0.04); }
-.search-results li:hover{ background:rgba(31,111,235,0.06); }
+.brand-title { margin: 0; font-size: 18px; font-weight: 700; color: #0b1220; }
+.brand-sub { margin: 0; font-size: 12px; color: var(--muted); }
 
-/* Body */
-.card-body{ padding:28px; display:flex; flex-direction:column; gap:12px; }
-.card-title{ margin:0; font-size:20px; color:#0b1220; }
+/* ==========================================================================
+   SEARCH WIDGET (header search used in catalog views)
+   ========================================================================== */
+.search-wrapper { width: 400px; max-width: 44%; position: relative; }
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 6px;
+  border: 1px solid rgba(7,10,25,0.04);
+}
+.search-field input {
+  border: 0;
+  outline: 0;
+  font-size: 14px;
+  padding: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.btn-icon { border: 0; background: transparent; cursor: pointer; font-size: 14px; padding: 6px; border-radius: 8px; }
+.search-results {
+  list-style: none;
+  margin: 6px 0 0 0;
+  padding: 6px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 10px;
+  max-height: 220px;
+  overflow: auto;
+  box-shadow: 0 8px 20px rgba(15,23,42,0.08);
+  border: 1px solid rgba(7,10,25,0.04);
+  z-index: 40;
+  display: none;
+}
+.search-results li { padding: 10px 12px; font-size: 14px; color: #07122a; cursor: pointer; }
+.search-results li + li { border-top: 1px solid rgba(7,10,25,0.04); }
+.search-results li:hover { background: rgba(31,111,235,0.06); }
 
-/* Form */
-.form-group{ margin-bottom:14px; }
-.form-group label{ display:block; margin-bottom:6px; font-weight:600; font-size:13px; color:#283046; }
+/* ==========================================================================
+   FORM ELEMENTS (aplicables a login y formularios del admin)
+   - Unificadas aquí para evitar duplicar reglas
+   ========================================================================== */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #283046; }
 .form-group input[type="email"],
 .form-group input[type="password"],
-.form-group input[type="search"]{
-  width:100%;
-  padding:12px 14px;
-  border-radius:10px;
-  border:1px solid rgba(15,23,42,0.06);
-  font-size:14px;
-  background:linear-gradient(180deg,rgba(255,255,255,0.6),#fff);
+.form-group input[type="search"],
+.form-control,
+.form-select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(15,23,42,0.06);
+  font-size: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.6), #fff);
   transition: box-shadow .16s, border-color .12s, transform .06s;
 }
-.form-group input:focus{ outline:none; box-shadow:0 6px 18px rgba(31,111,235,0.12); border-color:var(--accent); transform:translateY(-1px); }
+.form-group input:focus,
+.form-control:focus,
+.form-select:focus { outline: none; box-shadow: 0 6px 18px rgba(31,111,235,0.12); border-color: var(--accent); transform: translateY(-1px); }
+.password-wrapper { display: flex; align-items: center; gap: 8px; }
+.password-wrapper input { flex: 1; }
+.field-error { color: var(--danger); font-size: 12px; height: 16px; margin-top: 6px; }
 
-.password-wrapper{ display:flex; align-items:center; gap:8px; }
-.password-wrapper input{ flex:1; }
-.field-error{ color:var(--danger); font-size:12px; height:16px; margin-top:6px; }
-
-/* Actions */
-.form-actions{ margin-top:6px; }
-.btn-primary{
-  width:100%;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  background:linear-gradient(180deg,var(--accent), #145bd8);
-  color:#fff;
-  border:0;
-  padding:12px 14px;
-  border-radius:10px;
-  font-weight:700;
-  cursor:pointer;
-  font-size:15px;
+/* Actions / botones */
+.form-actions { margin-top: 6px; }
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(180deg, var(--accent), #145bd8);
+  color: #fff;
+  border: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 15px;
   box-shadow: 0 8px 20px rgba(31,111,235,0.14);
   transition: transform .08s ease, opacity .12s;
+  width: 100%;
 }
-.btn-primary:active{ transform:scale(.996); }
-.btn-primary[disabled]{ opacity:.65; cursor:not-allowed; }
+.btn-primary:active { transform: scale(.996); }
+.btn-primary[disabled] { opacity: .65; cursor: not-allowed; }
 
-/* Links */
-.links-row{ display:flex; justify-content:space-between; margin-top:12px; font-size:13px; color:var(--muted); }
-.link{ color:var(--accent); text-decoration:none; }
-.link:hover{ text-decoration:underline; }
+/* ==========================================================================
+   LIBROS / CARDS (vista home / catalog)
+   ========================================================================== */
+.books-list { margin-top: 0.75rem; margin-bottom: 2rem; }
+.books-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  justify-content: center;
+  align-items: stretch;
+}
+.col-card { flex: 0 0 260px; max-width: 260px; }
+.book-card { transition: transform .15s ease, box-shadow .2s ease; }
+.book-card:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(0,0,0,0.12); }
+.book-card .card { position: relative; z-index: 2; }
+.book-card .card-img-top { width: 100%; display: block; object-fit: cover; object-position: center; height: 320px; }
 
-/* Footer */
-.card-footer{ padding:16px 28px; background:linear-gradient(180deg, transparent, rgba(15,23,42,0.015)); text-align:center; font-size:13px; color:var(--muted); }
+/* ==========================================================================
+   NAVBAR FIX (evitar que el navbar fixed tape contenido)
+   - Mantener aquí porque afecta a todo el layout
+   ========================================================================== */
+/* scroll-margin para ancors */
+[id] { scroll-margin-top: calc(var(--nav-height) + 12px); }
 
-/* Utilities */
-.visually-hidden{ position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); white-space:nowrap; }
-@media (max-width:880px){
-  .card{ width:100%; }
-  .search-wrapper{ display:none; }
-  .brand-icon{ width:48px; height:48px; }
-  .card-body{ padding:20px; }
+/* Asegurar footer está debajo */
+.site-footer { position: relative; z-index: 1; clear: both; padding: 1.5rem 0; }
+
+/* ==========================================================================
+   PAGINACIÓN (normalize para evitar iconos/flechas gigantes heredadas)
+   ========================================================================== */
+.pagination {
+  display: flex !important;
+  gap: 0.45rem;
+  justify-content: center !important;
+  align-items: center !important;
+  margin: 0.75rem 0 !important;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.pagination .page-item .page-link,
+.pagination .page-item .page-link:link,
+.pagination .page-item .page-link:visited {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px !important;
+  font-size: 0.95rem !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border: 1px solid rgba(15,23,42,0.06) !important;
+}
+.pagination .page-item.active .page-link {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+.pagination .page-link::before,
+.pagination .page-link::after { display: none !important; content: none !important; }
+.pagination .page-link img,
+.pagination .page-link svg { width: 18px !important; height: 18px !important; max-width: 18px !important; max-height: 18px !important; display: inline-block !important; vertical-align: middle; }
+.pagination .page-link * { font-size: inherit !important; transform: none !important; }
+.pagination > * { display: inline-flex !important; }
+
+/* ==========================================================================
+   HELPERS / UTILITIES
+   ========================================================================== */
+.visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px); white-space: nowrap; }
+.link { color: var(--accent); text-decoration: none; }
+.link:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+@media (max-width: 880px) {
+  .card { width: 100%; }
+  .search-wrapper { display: none; }
+  .brand-icon { width: 48px; height: 48px; }
+  .card-body { padding: 20px; }
+}
+@media (max-width: 576px) {
+  .col-card { flex-basis: 100%; max-width: 100%; }
+  .book-card .card-img-top { height: 220px; }
+  body { padding-top: 96px; } /* fallback si JS no corre */
+  .pagination { gap: 0.25rem; font-size: 0.85rem; }
+  .pagination .page-link { padding: 6px 8px !important; }
+}
+.py-2 {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+/* ==========================================================================
+   FIX PAGINACIÓN (flechas grandes)
+   ========================================================================== */
+
+/* Contenedor */
+.pagination {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0.4rem;
+    font-size: 0.9rem;
 }
 
-.book-card {
-        transition: transform .15s ease, box-shadow .2s ease;
+/* Normalizar cada elemento */
+.pagination .page-item {
+    display: inline-flex !important;
 }
 
-.book-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+/* Botones / Flechas */
+.pagination .page-link {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px !important;
+    min-width: 34px;
+    height: 34px;
+    font-size: 0.9rem !important;
+    border-radius: 6px !important;
+    background: #fff !important;
+    border: 1px solid rgba(0,0,0,0.15) !important;
+    box-shadow: none !important;
 }
 
-.form-control, .form-select {
-        border-radius: 0.5rem;
+/* Íconos dentro de la paginación (SVG o IMG) */
+.pagination .page-link svg,
+.pagination .page-link img {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* Evitar pseudo-elementos gigantes heredados */
+.pagination .page-link::before,
+.pagination .page-link::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* Estado activo */
+.pagination .page-item.active .page-link {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: #fff !important;
+}
+
+/* Estado disabled */
+.pagination .page-item.disabled .page-link {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+}
+/* ============================
+   Estilo moderno para paginación
+   ============================ */
+
+.custom-pagination {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0;
+  list-style: none;
+}
+
+.custom-pagination .page-item {
+  display: inline-flex;
+}
+
+/* enlace base */
+.custom-pagination .page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(15,23,42,0.06);
+  background: #ffffff;
+  color: #0b1220;
+  font-size: 0.95rem;
+  transition: transform .08s ease, box-shadow .12s ease, background .12s;
+  box-shadow: 0 4px 10px rgba(11,17,31,0.03);
+}
+
+/* iconos (flechas) */
+.custom-pagination .page-link i.bi {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* hover / focus */
+.custom-pagination .page-link:hover,
+.custom-pagination .page-link:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(31,111,235,0.08);
+  text-decoration: none;
+}
+
+/* elemento activo */
+.custom-pagination .page-item.active .page-link {
+  background: linear-gradient(180deg, var(--accent), #145bd8);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(31,111,235,0.14);
+}
+
+/* disabled */
+.custom-pagination .page-item.disabled .page-link {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  background: #f5f6f8;
+}
+
+/* small screens: reducir tamaño */
+@media (max-width: 576px) {
+  .custom-pagination .page-link {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+    font-size: 0.88rem;
+    border-radius: 8px;
+  }
+}
+
+/* ---------- Acciones tabla: evitar que los botones se envuelvan y normalizar tamaño ---------- */
+.table .action-cell { vertical-align: middle; }
+
+/* contenedor que agrupa los botones */
+.action-btns {
+  gap: 0.4rem;           /* espacio entre botones */
+  white-space: nowrap;   /* evita que los botones se rompan en varias líneas */
+}
+
+/* uniformizar tamaño de btn-sm dentro de tablas */
+.table .btn-sm.btn-action {
+  padding: 0.28rem 0.55rem; /* ajuste cómodo para icons */
+  line-height: 1;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;       /* evita botones demasiado estrechos */
+}
+
+/* eliminar margin errática en formularios/inputs embebidos */
+.table .delete-form { display: inline-flex; align-items: center; margin: 0; padding: 0; }
+
+/* pequeño ajuste cuando hay texto largo: truncar título en columna (opcional) */
+.table td .fw-semibold { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; display: inline-block; }
+
+/* Responsive: si la pantalla es muy pequeña dejamos que se rompan (evitar overflow horizontal) */
+@media (max-width: 480px) {
+  .action-cell { min-width: 0 !important; }
+  .action-btns { gap: 0.25rem; }
+  .table td .fw-semibold { max-width: 140px; }
 }

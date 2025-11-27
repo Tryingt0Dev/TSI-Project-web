@@ -4,3 +4,4 @@ import "./ui.js";
 import "../css/app.css";
 import "../css/style.css";
 import './login.js';
+import './navbar.js';

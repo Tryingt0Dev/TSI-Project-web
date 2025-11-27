@@ -21,7 +21,7 @@
     </style>
 </head>
 
-<body class="bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center min-h-screen">
+<body class="auth-page">
 
     <div class="fade-in bg-white/80 backdrop-blur-xl shadow-xl rounded-2xl p-10 w-96 border border-white/40">
 
@@ -37,7 +37,7 @@
 
         <h1 class="text-2xl font-bold mb-6 text-center text-gray-700">Acceso Biblioteca</h1>
 
-        <form method="POST" action="{{ route('login.post') }}">
+        <form method="POST" action="{{ route('login') }}">
             @csrf
 
             <div class="mb-4">
