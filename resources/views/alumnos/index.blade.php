@@ -35,8 +35,8 @@
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label small text-muted">Min. retrasos</label>
-                    <input type="number" name="min_retrasos" min="0" value="{{ old('min_retrasos', $min_retrasos ?? '') }}" class="form-control">
+                    <label class="form-label small text-muted">Min. Atrasos</label>
+                    <input type="number" name="min_atrasos" min="0" value="{{ old('min_atrasos', $min_atrasos ?? '') }}" class="form-control">
                 </div>
 
                 <div class="col-md-2 d-grid">
@@ -57,7 +57,7 @@
                             <th>Nombre</th>
                             <th>Apellido</th>
                             <th>Registro</th>
-                            <th>Retrasos</th>
+                            <th>Atrasos</th>
                             <th>Permiso préstamo</th>
                             <th class="text-end">Acciones</th>
                         </tr>
@@ -69,7 +69,7 @@
                                 <td>{{ $alumno->nombre_alumno }}</td>
                                 <td>{{ $alumno->apellido_alumno }}</td>
                                 <td>{{ optional($alumno->fecha_registro)->format('Y-m-d') }}</td>
-                                <td>{{ $alumno->retrasos }}</td>
+                                <td>{{ $alumno->atrasos }}</td>
                                 <td>
                                     @if($alumno->permiso_prestamo)
                                         <span class="badge bg-success">Sí</span>

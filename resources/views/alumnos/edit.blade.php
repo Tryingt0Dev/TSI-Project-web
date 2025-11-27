@@ -31,8 +31,8 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Retrasos</label>
-                        <input type="number" name="retrasos" min="0" class="form-control" value="{{ old('retrasos', $alumno->retrasos) }}">
+                        <label class="form-label">Atrasos</label>
+                        <input type="number" name="atrasos" min="0" class="form-control" value="{{ old('atrasos', $alumno->atrasos) }}">
                     </div>
 
                     <div class="col-md-4">

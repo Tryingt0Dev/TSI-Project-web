@@ -24,10 +24,8 @@ return new class extends Migration {
 
             // claves foreanas
 
-            $table->unsignedBigInteger('id_autor');
             $table->unsignedBigInteger('id_ubicacion');
             $table->unsignedBigInteger('id_genero');
-            $table->foreign('id_autor')->references('id_autor')->on('autores')->onDelete('cascade');
             $table->foreign('id_ubicacion')->references('id_ubicacion')->on('ubicaciones')->onDelete('cascade');
             $table->foreign('id_genero')->references('id_genero')->on('generos')->onDelete('cascade');
 

@@ -150,7 +150,7 @@ class LibroController extends Controller
                 if (Schema::hasColumn('copia', 'id_ubicacion')) {
                     Copia::create([
                         'id_libro_interno' => $libro->id_libro_interno,
-                        'estado' => 'disponible',
+                        'estado' => 'Disponible',
                         'id_ubicacion' => $idUbicacion !== null ? $idUbicacion : null,
                     ]);
                 } else {
@@ -159,14 +159,14 @@ class LibroController extends Controller
                     if ($campo) {
                         Copia::create([
                             'id_libro_interno' => $libro->id_libro_interno,
-                            'estado' => 'disponible',
+                            'estado' => 'Disponible',
                             $campo => $idUbicacion !== null ? $idUbicacion : null,
                         ]);
                     } else {
                         // crear sin ubicación si no existe ninguna columna relacionada
                         Copia::create([
                             'id_libro_interno' => $libro->id_libro_interno,
-                            'estado' => 'disponible',
+                            'estado' => 'Disponible',
                         ]);
                     }
                 }
@@ -177,7 +177,7 @@ class LibroController extends Controller
                 $libro->recalcularStock();
             } else {
                 $libro->stock_total = $libro->copias()->count();
-                $libro->stock_disponible = $libro->copias()->where('estado','disponible')->count();
+                $libro->stock_disponible = $libro->copias()->where('estado','Disponible')->count();
                 $libro->save();
             }
         });

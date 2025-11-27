@@ -19,14 +19,14 @@ class Alumno extends Model
         'nombre_alumno',
         'apellido_alumno',
         'fecha_registro',
-        'retrasos',
+        'atrasos',
         'permiso_prestamo',
     ];
 
     protected $casts = [
         'fecha_registro' => 'date',
         'permiso_prestamo' => 'boolean',
-        'retrasos' => 'integer',
+        'atrasos' => 'integer',
     ];
 
     public function prestamos()
@@ -36,7 +36,7 @@ class Alumno extends Model
     protected static function booted()
     {
         static::saving(function ($alumno) {
-            $alumno->permiso_prestamo = $alumno->retrasos <= 3;
+            $alumno->permiso_prestamo = $alumno->atrasos <= 3;
         });
     }
 }
