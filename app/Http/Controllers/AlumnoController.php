@@ -15,7 +15,7 @@ class AlumnoController extends Controller
     {
         $q = $request->query('q');
         $permiso = $request->query('permiso'); // '', '1', '0'
-        $min_retrasos = $request->query('min_retrasos');
+        $min_atrasos = $request->query('min_atrasos');
 
         $query = Alumno::query();
 
@@ -33,15 +33,15 @@ class AlumnoController extends Controller
             $query->where('permiso_prestamo', (bool) $permiso);
         }
 
-        // Filtro mínimo de retrasos
-        if ($min_retrasos !== null && $min_retrasos !== '') {
-            $query->where('retrasos', '>=', (int)$min_retrasos);
+        // Filtro mínimo de atrasos
+        if ($min_atrasos !== null && $min_atrasos !== '') {
+            $query->where('atrasos', '>=', (int)$min_atrasos);
         }
 
         // Ordena por fecha de registro (últimos primero)
         $alumnos = $query->orderByDesc('fecha_registro')->paginate(15)->withQueryString();
 
-        return view('alumnos.index', compact('alumnos', 'q', 'permiso', 'min_retrasos'));
+        return view('alumnos.index', compact('alumnos', 'q', 'permiso', 'min_atrasos'));
     }
 
     /**
@@ -64,7 +64,7 @@ class AlumnoController extends Controller
             'nombre_alumno' => ['required','string','max:60'],
             'apellido_alumno' => ['required','string','max:60'],
             'fecha_registro' => ['nullable','date'],
-            'retrasos' => ['required','integer','min:0'],
+            'atrasos' => ['required','integer','min:0'],
             'permiso_prestamo' => ['sometimes','boolean'],
         ]);
 
