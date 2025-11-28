@@ -14,7 +14,9 @@ return new class extends Migration {
             $table->id('id_prestamo_copia');
 
             // Columnas
+            $table->dateTime('fecha_prestamo');
             $table->dateTime('fecha_devolucion_real')->nullable();
+            $table->string('estado')->nullable();
             $table->text('observaciones')->nullable();
 
             // Claves foraneas
