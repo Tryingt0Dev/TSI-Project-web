@@ -1,3 +1,8 @@
+<script>
+    window.appRoutes = {
+        generoStore: "{{ route('api.generos.store') }}"
+    };
+</script>
 @extends('layouts.app')
 
 @section('title', 'Agregar Libro')
@@ -60,16 +65,32 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">Género</label>
-                    <input type="text" name="genero_nombre" id="genero_autocomplete" class="form-control mb-2" placeholder="Nuevo género" value="{{ old('genero_nombre') }}">
-                    <select name="genero_id" id="genero_select" class="form-select">
-                        <option value="">-- Seleccione un género --</option>
-                        @foreach($generos_literarios as $genero)
-                            <option value="{{ $genero->id_genero }}" {{ old('genero_id') == $genero->id_genero ? 'selected' : '' }}>
-                                {{ $genero->nombre }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="col-md-6">
+                        <label class="form-label">Género</label>
+
+                        <div class="input-group mb-2">
+                            <input type="text" id="genero_autocomplete" class="form-control" placeholder="Nuevo género (escribe y pulsa Guardar)">
+                            <button type="submit" id="btn-crear-genero" class="btn btn-outline-primary" title="Crear género desde texto">
+                                <i class="bi bi-plus-lg"></i> Guardar
+                            </button>
+                        </div>
+
+                        <select name="genero_id" id="genero_select" class="form-select" required>
+                            <option value="">-- Seleccione un género --</option>
+                            @foreach($generos_literarios as $genero)
+                                <option value="{{ $genero->id_genero }}" {{ old('genero_id') == $genero->id_genero ? 'selected' : '' }}>
+                                    {{ $genero->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        <input type="hidden" name="genero_nombre" id="genero_nombre_hidden" value="{{ old('genero_nombre') }}">
+                        
+                    </div>
+                    <div class="form-text mt-1">Escribe un nuevo género y pulsa <strong>Guardar</strong>, luego selecciona el género en la lista.</div>
+                    {{-- Campo oculto (opcional) para mantener valor textual si quieres) --}}
+                    <input type="hidden" name="genero_nombre" id="genero_nombre_hidden" value="{{ old('genero_nombre') }}">
+                    <div class="form-text mt-1">Si quieres crear un género nuevo escribe arriba y pulsa <strong>Guardar</strong>, luego selecciona el género en la lista desplegable.</div>
                 </div>
 
                 <div class="col-md-6">
@@ -165,53 +186,82 @@
 
 {{-- pequeño script local para integrar el datalist single -> authors-wrapper al pulsar Enter --}}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const autorSingle = document.getElementById('autor_nombre_single');
-    const authorsWrapper = document.getElementById('authors-wrapper');
+    document.addEventListener('DOMContentLoaded', function () {
+        const autorSingle = document.getElementById('autor_nombre_single');
+        const authorsWrapper = document.getElementById('authors-wrapper');
 
-    if (!autorSingle) return;
+        if (!autorSingle) return;
 
-    autorSingle.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const val = autorSingle.value && autorSingle.value.trim();
-            if (!val) return;
-            // evitar duplicados
-            const exists = Array.from(authorsWrapper.querySelectorAll('input[name="autor_nombres[]"]'))
-                .some(i => i.value.trim().toLowerCase() === val.toLowerCase());
-            if (!exists) {
-                const group = document.createElement('div');
-                group.className = 'input-group mb-2 author-item';
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.name = 'autor_nombres[]';
-                input.className = 'form-control';
-                input.value = val;
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'btn btn-outline-danger btn-remove-author';
-                btn.innerHTML = '<i class="bi bi-x-lg"></i>';
-                btn.addEventListener('click', function () { group.remove(); });
-                group.appendChild(input);
-                group.appendChild(btn);
-                authorsWrapper.appendChild(group);
-                autorSingle.value = '';
-                // update hidden fallback
+        autorSingle.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = autorSingle.value && autorSingle.value.trim();
+                if (!val) return;
+                // evitar duplicados
+                const exists = Array.from(authorsWrapper.querySelectorAll('input[name="autor_nombres[]"]'))
+                    .some(i => i.value.trim().toLowerCase() === val.toLowerCase());
+                if (!exists) {
+                    const group = document.createElement('div');
+                    group.className = 'input-group mb-2 author-item';
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = 'autor_nombres[]';
+                    input.className = 'form-control';
+                    input.value = val;
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn btn-outline-danger btn-remove-author';
+                    btn.innerHTML = '<i class="bi bi-x-lg"></i>';
+                    btn.addEventListener('click', function () { group.remove(); });
+                    group.appendChild(input);
+                    group.appendChild(btn);
+                    authorsWrapper.appendChild(group);
+                    autorSingle.value = '';
+                    // update hidden fallback
+                    const evt = new Event('input', { bubbles: true });
+                    authorsWrapper.dispatchEvent(evt);
+                }
+            }
+        });
+
+        // delegate remove buttons (for those added later)
+        authorsWrapper.addEventListener('click', function (e) {
+            if (e.target.closest('.btn-remove-author')) {
+                e.target.closest('.author-item').remove();
+                // trigger input to update fallback
                 const evt = new Event('input', { bubbles: true });
                 authorsWrapper.dispatchEvent(evt);
             }
-        }
+        });
+    });
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputGen = document.getElementById('genero_autocomplete');
+    const selectGen = document.getElementById('genero_select');
+
+    if (!inputGen || !selectGen) return;
+
+    // Construir mapa nombre(lower) -> id a partir de las opciones del select
+    const map = {};
+    Array.from(selectGen.options).forEach(opt => {
+        if (!opt.value) return;
+        map[opt.text.trim().toLowerCase()] = opt.value;
     });
 
-    // delegate remove buttons (for those added later)
-    authorsWrapper.addEventListener('click', function (e) {
-        if (e.target.closest('.btn-remove-author')) {
-            e.target.closest('.author-item').remove();
-            // trigger input to update fallback
-            const evt = new Event('input', { bubbles: true });
-            authorsWrapper.dispatchEvent(evt);
+    inputGen.addEventListener('input', function () {
+        const val = this.value.trim().toLowerCase();
+        if (val && map[val]) {
+            // existe: seleccionar el id correspondiente y opcionalmente limpiar el campo de texto
+            selectGen.value = map[val];
+            // si quieres que el nombre no se envíe como "nuevo" puedes vaciar el input:
+            // this.value = '';
+        } else {
+            // no coincide: dejar select en vacío para crear nuevo género al submit
+            selectGen.value = '';
         }
     });
 });
 </script>
+
 @endsection

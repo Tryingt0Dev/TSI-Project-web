@@ -11,6 +11,7 @@ use App\Models\Copia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use App\Models\Alumno;
 
 class LibroController extends Controller
@@ -21,7 +22,7 @@ class LibroController extends Controller
             ->withCount([
                 'copias',
                 'copias as copias_disponibles_count' => function ($q) {
-                    $q->where(function($sub) {
+                    $q->where(function ($sub) {
                         $sub->whereNull('estado')->orWhere('estado', '<>', 'prestado');
                     });
                 },
@@ -29,7 +30,7 @@ class LibroController extends Controller
 
         if ($request->filled('q')) {
             $q = $request->q;
-            $query->where(function($sub) use ($q) {
+            $query->where(function ($sub) use ($q) {
                 $sub->where('titulo', 'like', "%$q%")
                     ->orWhere('isbn_libro', 'like', "%$q%");
             });
@@ -38,7 +39,7 @@ class LibroController extends Controller
         // FILTRAR POR AUTOR (many-to-many)
         if ($request->filled('autor')) {
             $autorId = $request->autor;
-            $query->whereHas('autores', function($qb) use ($autorId) {
+            $query->whereHas('autores', function ($qb) use ($autorId) {
                 $qb->where('autores.id_autor', $autorId);
             });
         }
@@ -68,56 +69,85 @@ class LibroController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'isbn_libro'      => 'required|string|unique:libros,isbn_libro',
-            'titulo'          => 'required|string|max:255',
+            'isbn_libro'       => 'required|string|unique:libros,isbn_libro',
+            'titulo'           => 'required|string|max:255',
             'fecha_publicacion'=> 'nullable|date',
-            'editorial'       => 'nullable|string|max:255',
-            'genero_nombre'   => 'nullable|string|max:255',
-            'autor_nombres'   => 'nullable|array',
-            'autor_nombres.*' => 'nullable|string|max:255',
-            'autor_nombre'    => 'nullable|string|max:255',
-            'num_copias'      => 'nullable|integer|min:0',
-            'id_ubicacion'    => 'nullable|exists:ubicaciones,id_ubicacion',
+            'editorial'        => 'nullable|string|max:255',
+            'genero_nombre'    => 'nullable|string|max:255',
+            'autor_nombres'    => 'nullable|array',
+            'autor_nombres.*'  => 'nullable|string|max:255',
+            'autor_nombre'     => 'nullable|string|max:255',
+            'num_copias'       => 'nullable|integer|min:0',
+            'id_ubicacion'     => 'nullable|exists:ubicaciones,id_ubicacion',
         ]);
 
         // Resolver/crear genero (nombre o select)
         $generoId = null;
-        if (!empty($request->genero_nombre)) {
-            $genero = Genero::firstOrCreate(['nombre' => $request->genero_nombre]);
-            $generoId = $genero->id_genero;
-        } elseif ($request->filled('genero_id')) {
-            $generoId = $request->genero_id;
+
+        // 1) Si envían un genero_id, preferirlo (si existe realmente)
+        if ($request->filled('genero_id')) {
+            $g = Genero::find($request->genero_id);
+            if ($g) {
+                $generoId = $g->id_genero;
+            }
+        }
+
+        // 2) Si no hay genero_id válido, intentar resolver por nombre (buscar case-insensitive)
+        if (! $generoId && $request->filled('genero_nombre')) {
+            $nombreGenero = trim($request->genero_nombre);
+            if ($nombreGenero !== '') {
+                // Buscar ignorando mayúsculas/minúsculas
+                $genero = Genero::whereRaw('LOWER(nombre) = ?', [Str::lower($nombreGenero)])->first();
+
+                if (! $genero) {
+                    // crear nuevo género (si no existe)
+                    $genero = Genero::create([
+                        'nombre' => $nombreGenero,
+                    ]);
+                }
+
+                if ($genero) {
+                    $generoId = $genero->id_genero;
+                }
+            }
+        }
+
+        // 3) Si aún no hay generoId -> retornar con error claro al usuario
+        if (! $generoId) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['genero' => 'No se pudo determinar el género. Selecciona o crea un género válido.']);
+        }
+
+        // Si tu tabla libros requiere id_genero NOT NULL, validar aquí
+        if (is_null($generoId)) {
+            return back()->withInput()->withErrors(['genero' => 'No se pudo determinar el género. Selecciona o crea un género válido.']);
         }
 
         $numCopias = (int) $request->input('num_copias', 0);
         $idUbicacion = $request->input('id_ubicacion', null);
 
-        DB::transaction(function () use ($request, $generoId, $numCopias, $idUbicacion, &$libro) {
+        DB::beginTransaction();
+        try {
             $libro = new Libro();
             $libro->isbn_libro = $request->isbn_libro;
             $libro->titulo = $request->titulo;
-            $libro->fecha_publicacion = $request->fecha_publicacion;
+            $libro->fecha_publicacion = $request->fecha_publicacion ?: null;
             $libro->editorial = $request->input('editorial');
             $libro->id_genero = $generoId;
 
-            // --- Asignar SOLO si las columnas existen en la BD ---
-            if (Schema::hasColumn('libros', 'id_autor')) {
-                // ponemos explícitamente null si quieres mantener la columna legacy
-                $libro->id_autor = null;
+            // Asignar id_ubicacion solo si la columna existe
+            if (Schema::hasColumn('libros', 'id_ubicacion') && $idUbicacion !== null) {
+                $libro->id_ubicacion = $idUbicacion;
             }
 
-            if (Schema::hasColumn('libros', 'id_ubicacion')) {
-                $libro->id_ubicacion = $idUbicacion !== null ? $idUbicacion : null;
-            }
-
-            // Guardamos el libro
             $libro->save();
 
-            // AUTORES: aceptar array o comma separated
+            // AUTORES: aceptar array o comma separated y FILTRAR nulos/vacíos
             $autorNames = [];
             if ($request->filled('autor_nombres') && is_array($request->autor_nombres)) {
                 foreach ($request->autor_nombres as $name) {
-                    $name = trim($name);
+                    $name = trim((string) $name);
                     if ($name !== '') $autorNames[] = $name;
                 }
             }
@@ -129,14 +159,14 @@ class LibroController extends Controller
             $autorIds = [];
             foreach ($autorNames as $an) {
                 $autor = Autor::firstOrCreate(['nombre' => $an]);
-                $autorIds[] = $autor->id_autor;
+                $autorIds[] = $autor->{$autor->getKeyName()};
             }
 
-            // Si viene un autor_id legacy suelto, lo añadimos también (sin duplicados)
+            // Si viene un autor_id legacy, lo añadimos también (sin duplicados)
             if ($request->filled('autor_id')) {
-                $legacyId = $request->autor_id;
+                $legacyId = (int) $request->autor_id;
                 if ($legacyId && !in_array($legacyId, $autorIds, true)) {
-                    $autorIds[] = (int) $legacyId;
+                    $autorIds[] = $legacyId;
                 }
             }
 
@@ -145,8 +175,11 @@ class LibroController extends Controller
             }
 
             // Crear copias solicitadas (si no se indicó ubicacion, las copias tendrán id_ubicacion NULL)
+            // IMPORTANTE: si num_copias es muy grande, podrías limitarlo por seguridad
+            $maxCopias = 500; // ajustar según necesidad
+            $numCopias = min($numCopias, $maxCopias);
+
             for ($i = 0; $i < $numCopias; $i++) {
-                // determinar campo correcto en la tabla copia:
                 if (Schema::hasColumn('copia', 'id_ubicacion')) {
                     Copia::create([
                         'id_libro_interno' => $libro->id_libro_interno,
@@ -154,7 +187,6 @@ class LibroController extends Controller
                         'id_ubicacion' => $idUbicacion !== null ? $idUbicacion : null,
                     ]);
                 } else {
-                    // si la tabla copia usa otro nombre (ej: id_ubicaciones) acomodamos
                     $campo = Schema::hasColumn('copia', 'id_ubicaciones') ? 'id_ubicaciones' : null;
                     if ($campo) {
                         Copia::create([
@@ -163,7 +195,6 @@ class LibroController extends Controller
                             $campo => $idUbicacion !== null ? $idUbicacion : null,
                         ]);
                     } else {
-                        // crear sin ubicación si no existe ninguna columna relacionada
                         Copia::create([
                             'id_libro_interno' => $libro->id_libro_interno,
                             'estado' => 'Disponible',
@@ -177,13 +208,22 @@ class LibroController extends Controller
                 $libro->recalcularStock();
             } else {
                 $libro->stock_total = $libro->copias()->count();
-                $libro->stock_disponible = $libro->copias()->where('estado','Disponible')->count();
+                $libro->stock_disponible = $libro->copias()->where('estado', 'Disponible')->count();
                 $libro->save();
             }
-        });
 
-        return redirect()->route('libros.index')->with('success', 'Libro agregado correctamente');
+            DB::commit();
+            return redirect()->route('libros.index')->with('success', 'Libro agregado correctamente');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Log::error('Error creando libro: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all(),
+            ]);
+            return back()->withInput()->withErrors(['internal' => 'Ocurrió un error al crear el libro. Revisa logs.']);
+        }
     }
+
 
     /**
      * Busqueda en la api del isbn
@@ -223,17 +263,11 @@ class LibroController extends Controller
         return view('libros.detalle', compact('libro', 'ubicaciones'));
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show($id)
     {
         return Libro::findOrFail($id);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit($id)
     {
         $libro = Libro::findOrFail($id);
@@ -244,15 +278,12 @@ class LibroController extends Controller
         return view('libros.edit', compact('libro', 'autores', 'generos_literarios', 'ubicaciones'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, $id)
     {
         $libro = Libro::findOrFail($id);
 
         $validated = $request->validate([
-            'isbn_libro' => ['required','string','max:50', Rule::unique('libros','isbn_libro')->ignore($libro->id_libro_interno,'id_libro_interno')],
+            'isbn_libro' => ['required', 'string', 'max:50', Rule::unique('libros', 'isbn_libro')->ignore($libro->id_libro_interno, 'id_libro_interno')],
             'titulo' => 'required|string|max:150',
             'autor_nombre' => 'nullable|string|max:150',
             'autor_id' => 'nullable|exists:autores,id_autor',
@@ -264,7 +295,7 @@ class LibroController extends Controller
         ]);
 
         // Autor
-        if (! empty($request->autor_nombre)) {
+        if (!empty($request->autor_nombre)) {
             $autor = Autor::firstOrCreate(['nombre' => $request->autor_nombre]);
             $autorId = $autor->id_autor;
         } else {
@@ -272,7 +303,7 @@ class LibroController extends Controller
         }
 
         // Genero
-        if (! empty($request->genero_nombre)) {
+        if (!empty($request->genero_nombre)) {
             $genero = Genero::firstOrCreate(['nombre' => $request->genero_nombre]);
             $generoId = $genero->id_genero;
         } else {
@@ -286,7 +317,7 @@ class LibroController extends Controller
             'fecha_publicacion' => $validated['fecha_publicacion'] ?? null,
         ]);
 
-        // Si vienen autores múltiples (campo autor_nombres[] o autor_nombre comma)
+        // Autores múltiples
         $autorNames = [];
         if ($request->filled('autor_nombres') && is_array($request->autor_nombres)) {
             foreach ($request->autor_nombres as $name) {
@@ -305,7 +336,6 @@ class LibroController extends Controller
             }
             $libro->autores()->sync($autorIds);
         } elseif ($autorId) {
-            // si solo viene un autor_id legacy, mantenerlo en pivot
             $libro->autores()->syncWithoutDetaching([$autorId]);
         }
 
@@ -314,31 +344,43 @@ class LibroController extends Controller
         return redirect()->route('libros.index')->with('success', 'Libro actualizado correctamente');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy($id)
     {
         $libro = Libro::findOrFail($id);
         $libro->delete(); // soft delete
-        return redirect()->route('libros.index')->with('success','Libro eliminado correctamente');
+        return redirect()->route('libros.index')->with('success', 'Libro eliminado correctamente');
     }
 
     public function catalogo(Request $request)
     {
-        $query = Libro::with(['autores', 'genero']);
+        $query = Libro::with(['autores', 'genero'])
+            ->withCount([
+                'copias',
+                'copias as copias_disponibles_count' => function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->whereNull('estado')->orWhere('estado', '<>', 'prestado');
+                    });
+                },
+            ]);
 
+        // Búsqueda múltiple: título, ISBN, autor nombre, genero nombre
         if ($request->filled('q')) {
             $q = $request->q;
-            $query->where(function($sub) use ($q) {
-                $sub->where('titulo', 'like', "%$q%")
-                    ->orWhere('isbn_libro', 'like', "%$q%");
+            $query->where(function ($sub) use ($q) {
+                $sub->where('titulo', 'like', "%{$q}%")
+                    ->orWhere('isbn_libro', 'like', "%{$q}%")
+                    ->orWhereHas('autores', function ($qa) use ($q) {
+                        $qa->where('nombre', 'like', "%{$q}%");
+                    })
+                    ->orWhereHas('genero', function ($gg) use ($q) {
+                        $gg->where('nombre', 'like', "%{$q}%");
+                    });
             });
         }
 
         if ($request->filled('autor')) {
             $autorId = $request->autor;
-            $query->whereHas('autores', function($qb) use ($autorId) {
+            $query->whereHas('autores', function ($qb) use ($autorId) {
                 $qb->where('autores.id_autor', $autorId);
             });
         }
@@ -347,43 +389,33 @@ class LibroController extends Controller
             $query->where('id_genero', $request->genero);
         }
 
-        $libros = $query->paginate(12);
+        $libros = $query->paginate(12)->withQueryString();
 
-        // --> IMPORTANTE: pasar $alumnos para el modal de prestamos
+        // Datos auxiliares para selects / modal
+        $autores = Autor::all();
+        $generos = Genero::all();
         $alumnos = Alumno::all();
 
-        return view('home', [
-            'libros' => $libros,
-            'autores' => Autor::all(),
-            'generos' => Genero::all(),
-            'alumnos' => $alumnos,
-        ]);
+        return view('home', compact('libros', 'autores', 'generos', 'alumnos'));
     }
 
     /**
      * API: copias disponibles de un libro (JSON)
-     *
-     * Devuelve todas las copias asociadas al libro que consideramos "disponibles"
-     * (estado NULL o distinto de los estados de prestado).
      */
     public function copiasDisponibles($id)
     {
         try {
-            // 1) Buscar libro por su PK (id_libro_interno)
             $libro = Libro::findOrFail($id);
 
-            // 2) Obtener copias relacionadas por la FK 'id_libro_interno' (NO 'id')
             $copias = Copia::where('id_libro_interno', $libro->id_libro_interno)
                 ->with('ubicacion')
-                ->where(function($q) {
-                    // disponible = estado NULL o distinto de valores que consideras "prestado"
+                ->where(function ($q) {
                     $q->whereNull('estado')
-                    ->orWhereNotIn('estado', ['prestado', 'Prestada', 'Prestado']);
+                      ->orWhereNotIn('estado', ['prestado', 'Prestada', 'Prestado']);
                 })
                 ->get();
 
-            // 3) Formatear respuesta
-            $out = $copias->map(function($c) {
+            $out = $copias->map(function ($c) {
                 $ubic = null;
                 if ($c->ubicacion) {
                     $parts = [];
@@ -394,19 +426,18 @@ class LibroController extends Controller
                 }
 
                 return [
-                    'id_copia'    => $c->id_copia ?? $c->id ?? null,
-                    'id_ubicacion'=> $c->id_ubicacion ?? null,
-                    'estado'      => $c->estado ?? null,
-                    'ubicacion'   => $ubic,
+                    'id_copia' => $c->id_copia ?? null,
+                    'id_ubicacion' => $c->id_ubicacion ?? null,
+                    'estado' => $c->estado ?? null,
+                    'ubicacion' => $ubic,
                 ];
             });
 
             return response()->json($out, 200);
-
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Libro no encontrado'], 404);
         } catch (\Throwable $e) {
-            \Log::error('Error en copiasDisponibles: '.$e->getMessage(), [
+            \Log::error('Error en copiasDisponibles: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'libro_id' => $id,
             ]);

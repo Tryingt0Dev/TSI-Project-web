@@ -16,7 +16,7 @@ class AlumnoFactory extends Factory
             'nombre_alumno'     => $this->faker->firstName(),
             'apellido_alumno'   => $this->faker->lastName(),
             'fecha_registro'    => now(),
-            'retrasos'          => $this->faker->numberBetween(0, 8),
+            'atrasos'          => $this->faker->numberBetween(0, 8),
             'permiso_prestamo'  => $this->faker->boolean(90),
         ];
     }

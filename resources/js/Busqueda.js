@@ -294,4 +294,78 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // inicializar fallback hidden al cargar (por si hay old values)
     updateFallbackField();
+    
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const btnCrear = document.getElementById('btn-crear-genero');
+    const inputGenero = document.getElementById('genero_autocomplete');
+    const selectGenero = document.getElementById('genero_select');
+    const hiddenGenero = document.getElementById('genero_nombre_hidden');
+
+    if (!btnCrear || !inputGenero || !selectGenero) return;
+
+    btnCrear.addEventListener('click', async function (e) {
+        e.preventDefault(); // seguridad: evita cualquier envío por accidente
+        const nombre = (inputGenero.value || '').trim();
+        if (!nombre) {
+            alert('Escribe el nombre del género que quieres crear.');
+            inputGenero.focus();
+            return;
+        }
+
+        // si ya existe en la lista, seleccionarlo
+        const existing = Array.from(selectGenero.options).find(o => (o.text || '').toLowerCase() === nombre.toLowerCase());
+        if (existing) {
+            selectGenero.value = existing.value;
+            if (hiddenGenero) hiddenGenero.value = existing.text;
+            inputGenero.value = '';
+            return alert('Género ya existente — seleccionado en la lista.');
+        }
+
+        // URL desde la variable global que pusimos en la vista
+        const url = window?.appRoutes?.generoStore;
+        if (!url) {
+            console.error('Falta window.appRoutes.generoStore');
+            alert('Configuración incorrecta: falta ruta para crear géneros.');
+            return;
+        }
+
+        // CSRF token desde meta
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const token = tokenMeta ? tokenMeta.getAttribute('content') : null;
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'X-CSRF-TOKEN': token } : {})
+                },
+                body: JSON.stringify({ nombre })
+            });
+
+            const payload = await res.json().catch(()=>null);
+
+            if (!res.ok) {
+                const msg = (payload && (payload.message || (payload.errors && Object.values(payload.errors).flat().join(', ')))) || 'Error al crear género';
+                return alert(msg);
+            }
+
+            // agregar la nueva opción y seleccionarla
+            const data = payload;
+            const opt = document.createElement('option');
+            opt.value = data.id;    // asumo que el controller devuelve { id, nombre }
+            opt.text  = data.nombre;
+            selectGenero.appendChild(opt);
+            selectGenero.value = data.id;
+            if (hiddenGenero) hiddenGenero.value = data.nombre;
+            inputGenero.value = '';
+            alert('Género creado y seleccionado: ' + data.nombre);
+        } catch (err) {
+            console.error('Error creando género:', err);
+            alert('Error de red al crear el género. Revisa la consola.');
+        }
+    });
 });

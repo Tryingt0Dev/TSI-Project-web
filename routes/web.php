@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CopiaController;
 use App\Http\Middleware\CheckRole;
 use App\Http\Controllers\AlumnoController;
+use App\Http\Controllers\GeneroController;
 use App\Models\Libro;
 
 Route::get('/', function () {
@@ -36,6 +37,10 @@ Route::get('/libros/{libro}/detalle', [LibroController::class, 'detalle'])
      ->name('libros.detalle');
 Route::get('/api/libro/{id}/copias-disponibles', [LibroController::class, 'copiasDisponibles'])
     ->name('api.libro.copias-disponibles')
+    ->middleware('auth');
+// generos
+Route::post('/api/generos', [GeneroController::class, 'store'])
+    ->name('api.generos.store')
     ->middleware('auth');
 
 // Usuarios

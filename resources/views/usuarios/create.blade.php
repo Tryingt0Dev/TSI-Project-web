@@ -49,8 +49,16 @@
 
                 <div class="col-md-6">
                     <label class="form-label">RUT</label>
-                    <input type="text" name="rut" class="form-control" required value="{{ old('rut') }}">
-                    <div class="form-text">Formato sin puntos ni guión (p. ej. 12345678K).</div>
+
+                    {{-- Input visible para el usuario (formato con guion) --}}
+                    <input type="text" id="rut_display" class="form-control" 
+                        value="{{ old('rut_display', isset($user) ? (substr($user->rut,0,-1).'-'.substr($user->rut,-1)) : '') }}"
+                        placeholder="12345678-9">
+
+                    {{-- Input oculto que realmente se envía al servidor SIN puntos ni guion --}}
+                    <input type="hidden" name="rut" id="rut" value="{{ old('rut') }}">
+
+                    <div class="form-text">Formato sin puntos ni guión al enviar (p. ej. 12345678K). Se mostrará con guion por legibilidad.</div>
                 </div>
 
                 <div class="col-md-6">
@@ -64,7 +72,6 @@
                         <option value="0" {{ old('rol') === '0' ? 'selected' : '' }}>Administrador</option>
                         <option value="1" {{ old('rol', '1') === '1' ? 'selected' : '' }}>Bibliotecario</option>
                     </select>
-                    <div class="form-text">0 = Administrador (acceso a Usuarios), 1 = Bibliotecario.</div>
                 </div>
 
                 <div class="col-md-6">
@@ -87,76 +94,90 @@
         </div>
     </div>
 </div>
-<script>
-// -------------------------
-// FUNCIONES DE VALIDACIÓN RUT
-// -------------------------
-
-function limpiarRut(rut) {
-    return rut.replace(/[^0-9kK]/g, '').toUpperCase();
-}
-
-function formatearRut(rut) {
-    rut = limpiarRut(rut);
-
-    if (rut.length <= 1) return rut;
-
-    let cuerpo = rut.slice(0, -1);
-    let dv = rut.slice(-1);
-
-    return cuerpo + '-' + dv;
-}
-
-function validarDV(cuerpo, dv) {
-    let suma = 0;
-    let multiplo = 2;
-
-    for (let i = cuerpo.length - 1; i >= 0; i--) {
-        suma += multiplo * cuerpo[i];
-        multiplo = multiplo < 7 ? multiplo + 1 : 2;
-    }
-
-    let dvEsperado = 11 - (suma % 11);
-    
-    if (dvEsperado === 11) dvEsperado = '0';
-    else if (dvEsperado === 10) dvEsperado = 'K';
-    else dvEsperado = dvEsperado.toString();
-
-    return dvEsperado === dv.toUpperCase();
-}
-
-// -------------------------
-// APLICAR AL INPUT
-// -------------------------
-document.addEventListener("DOMContentLoaded", function () {
-    const inputRut = document.querySelector("input[name='rut']");
-
-    // Formatear mientras escribe
-    inputRut.addEventListener("input", function () {
-        let rutFormateado = formatearRut(this.value);
-        this.value = rutFormateado;
-    });
-
-    // Validar al enviar el formulario
-    const form = inputRut.closest("form");
-
-    form.addEventListener("submit", function (e) {
-        let rut = inputRut.value;
-
-        if (!/^[0-9]+-[0-9K]$/i.test(rut)) {
-            e.preventDefault();
-            alert("El RUT debe tener el formato 12345678-9 o 123456789-K");
-            return;
-        }
-
-        let [cuerpo, dv] = rut.split('-');
-
-        if (!validarDV(cuerpo, dv)) {
-            e.preventDefault();
-            alert("El RUT ingresado no es válido");
-        }
-    });
-});
-</script>
-
 @endsection
+    <script>
+        // ---------- Helpers ----------
+        function limpiarRutRaw(text) {
+            // devuelve sólo números y K (mayúscula)
+            return (text || '').replace(/[^0-9kK]/g, '').toUpperCase();
+        }
+
+        function formatearConGuion(text) {
+            const raw = limpiarRutRaw(text);
+            if (raw.length <= 1) return raw;
+            const cuerpo = raw.slice(0, -1);
+            const dv = raw.slice(-1);
+            return cuerpo + '-' + dv;
+        }
+
+        function calcularDVValido(cuerpo, dv) {
+            // cuerpo: sólo dígitos en string; dv: un caracter (0-9 o K)
+            if (!/^[0-9]+$/.test(cuerpo)) return false;
+            let suma = 0;
+            let multiplo = 2;
+            for (let i = cuerpo.length - 1; i >= 0; i--) {
+                suma += multiplo * parseInt(cuerpo.charAt(i), 10);
+                multiplo = multiplo < 7 ? multiplo + 1 : 2;
+            }
+            let dvEsperado = 11 - (suma % 11);
+            if (dvEsperado === 11) dvEsperado = '0';
+            else if (dvEsperado === 10) dvEsperado = 'K';
+            else dvEsperado = String(dvEsperado);
+            return dvEsperado === dv.toUpperCase();
+        }
+
+        // ---------- DOM wiring ----------
+        document.addEventListener('DOMContentLoaded', function () {
+            const inputDisplay = document.getElementById('rut_display');
+            const inputHidden = document.getElementById('rut');
+            if (!inputDisplay || !inputHidden) return;
+
+            // Si hay un value ya en hidden (old), sincronizamos la vista
+            if (inputHidden.value) {
+                inputDisplay.value = formatearConGuion(inputHidden.value);
+            }
+
+            // Formatear mientras escribe (simple, puede alterar caret en casos complejos)
+            inputDisplay.addEventListener('input', function () {
+                const pos = this.selectionStart;
+                const formatted = formatearConGuion(this.value);
+                this.value = formatted;
+                // no intentamos mantener caret perfecto (ok para la mayoría de usos)
+            });
+
+            // Interceptar submit del formulario y validar antes de enviar
+            const form = inputDisplay.closest('form');
+            if (!form) return;
+
+            form.addEventListener('submit', function (e) {
+                // 1) Tomar valor visible y limpiar para el envío
+                const display = inputDisplay.value || '';
+                const raw = limpiarRutRaw(display);
+
+                // 2) Validación básica formato + DV
+                if (raw.length < 2) {
+                    e.preventDefault();
+                    alert('Ingrese un RUT válido (ej. 12345678-9).');
+                    return;
+                }
+
+                const cuerpo = raw.slice(0, -1);
+                const dv = raw.slice(-1);
+
+                if (!calcularDVValido(cuerpo, dv)) {
+                    e.preventDefault();
+                    alert('RUT inválido: el dígito verificador no coincide.');
+                    return;
+                }
+
+                // 3) Poner el valor limpio en el campo oculto que se enviará al servidor
+                inputHidden.value = raw; // sin puntos ni guion, en mayúsculas si DV es K
+
+                // El formulario puede continuar y enviar input[name="rut"] con el valor correcto
+            });
+        });
+    </script>
+
+
+
+
