@@ -127,6 +127,25 @@ class PrestamoController extends Controller
     return redirect()->route('prestamos.index')->with('success', 'Préstamo devuelto con comentario registrado');
     }
 
+    public function destroy($id)
+    {
+        $prestamo = Prestamo::findOrFail($id);
+
+        DB::transaction(function () use ($prestamo) {
+            
+            foreach ($prestamo->copias as $copia) {
+                $copia->estado = 'Disponible';
+                $copia->save();
+            }
+
+            $prestamo->copias()->detach();
+
+            $prestamo->delete();
+        });
+
+        return redirect()->route('prestamos.index')->with('success', 'Préstamo eliminado correctamente.');
+    }
+
 }
 
     
