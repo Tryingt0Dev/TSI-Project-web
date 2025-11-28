@@ -51,8 +51,9 @@ Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
 // Prestamos
 
 Route::resource('prestamos', \App\Http\Controllers\PrestamoController::class);
-Route::patch('prestamos/{prestamo}/devolver/{copia}', [\App\Http\Controllers\PrestamoController::class, 'devolverCopia'])->name('prestamos.devolverCopia');
-
+Route::patch('/prestamos/{idPrestamo}/copias/{idCopia}', [PrestamoController::class, 'updateCopia'])->name('prestamos.updateCopia');
+Route::get('/prestamos/{id}/comentario', [PrestamoController::class, 'comentario'])->name('prestamos.comentario');
+Route::post('/prestamos/{id}/finalizar', [PrestamoController::class, 'finalizar'])->name('prestamos.finalizar');
 
 //alumnos
 Route::middleware(['auth'])->group(function () {
