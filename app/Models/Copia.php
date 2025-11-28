@@ -31,12 +31,12 @@ class Copia extends Model
     public function prestamos()
     {
         return $this->belongsToMany(
-            \App\Models\Prestamo::class,
-            'prestamo_copia',
+            Prestamo::class,
+            'copias_prestamos',
             'id_copia',
             'id_prestamo'
-        )->withPivot(['fecha_asignacion','fecha_devolucion_real','devuelto','observaciones'])
-        ->withTimestamps();
+        )->withPivot(['estado','fecha_prestamo'])
+         ->withTimestamps();
     }
 
     // Observers para recalcular stock (mantengo tu lógica)
