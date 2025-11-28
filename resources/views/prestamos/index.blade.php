@@ -35,7 +35,7 @@
 
                 <div class="col-md-3">
                     <label class="form-label small text-muted">RUT alumno</label>
-                    <input type="text" name="rut" value="{{ request('rut') }}" class="form-control" placeholder="e.g. 12.345.678-9">
+                    <input type="text" name="rut" value="{{ request('rut') }}" class="form-control" placeholder="Ej: 12345678-9">
                 </div>
 
                 <div class="col-md-3">
@@ -101,8 +101,8 @@
                                     @endif
                                 </td>
 
-                                <td class="text-muted">{{ optional($prestamo->fecha_prestamo)->format('Y-m-d H:i') ?? ($prestamo->fecha_inicio ?? '-') }}</td>
-                                <td>{{ optional($prestamo->fecha_devolucion_prevista)->format('Y-m-d') ?? ($prestamo->fecha_limite ?? '-') }}</td>
+                                <td class="text-muted">{{ optional($prestamo->fecha_prestamo)->format('Y-m-d H:i') ?? ($prestamo->fecha_prestamo ?? '-') }}</td>
+                                <td>{{ optional($prestamo->fecha_devolucion_prevista)->format('Y-m-d') ?? ($prestamo->fecha_devolucion_prevista ?? '-') }}</td>
 
                                 <td>
                                     @php
