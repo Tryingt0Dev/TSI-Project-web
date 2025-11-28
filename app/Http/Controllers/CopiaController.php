@@ -35,56 +35,54 @@ class CopiaController extends Controller
 
     public function update(Request $request, Copia $copia)
     {
-        // Validación
+        // Validación básica (permitimos nuevo_estado como string opcional)
         $validated = $request->validate([
-            'id_ubicaciones' => 'nullable|exists:ubicaciones,id',
-            'estado' => 'nullable|string|max:50', // ejemplo: 'prestado' / 'disponible'
-            // opcional: permitir editar estante/seccion si prefieres crear/editar ubicacion inline
+            'id_ubicacion' => 'nullable|exists:ubicaciones,id',
+            'estado' => 'nullable|string|max:50',
+            'nuevo_estado' => 'nullable|string|max:50',
             'estante' => 'nullable|string|max:100',
             'seccion' => 'nullable|string|max:100',
         ]);
 
-        // Si el formulario envía estante/seccion y no id_ubicaciones, podemos crear/actualizar una ubicacion
-        if (isset($validated['estante']) || isset($validated['seccion'])) {
-            // Si se pasó id_ubicaciones, actualizamos esa ubicación; si no, creamos nueva
-            if (!empty($validated['id_ubicaciones'])) {
-                $ubic = Ubicacion::find($validated['id_ubicaciones']);
+        // --- Manejo de estado ---
+        if (!empty($validated['nuevo_estado'])) {
+            $copia->estado = $validated['nuevo_estado'];
+        } elseif (array_key_exists('estado', $validated)) {
+            $copia->estado = $validated['estado'] ?: null;
+        }
+        // --- FIN estado ---
+
+        // --- Manejo de ubicacion ---
+        if (!empty($validated['estante']) || !empty($validated['seccion'])) {
+            if (!empty($validated['id_ubicacion'])) {
+                $ubic = Ubicacion::find($validated['id_ubicacion']);
                 if ($ubic) {
                     $ubic->estante = $validated['estante'] ?? $ubic->estante;
                     $ubic->seccion = $validated['seccion'] ?? $ubic->seccion;
                     $ubic->save();
-                    $copia->id_ubicaciones = $ubic->id;
+                    $copia->id_ubicacion = $ubic->id;
                 }
             } else {
-                // crear nueva ubicacion
                 $ubic = Ubicacion::create([
                     'estante' => $validated['estante'] ?? null,
                     'seccion' => $validated['seccion'] ?? null,
                 ]);
-                $copia->id_ubicaciones = $ubic->id;
+                $copia->id_ubicacion = $ubic->id;
             }
         } else {
-            // solo actualizar FK o estado
-            if (array_key_exists('id_ubicaciones', $validated)) {
-                $copia->id_ubicaciones = $validated['id_ubicaciones'];
+            if (array_key_exists('id_ubicacion', $validated)) {
+                $copia->id_ubicacion = $validated['id_ubicacion'] ?: null;
             }
         }
-
-        if (array_key_exists('estado', $validated)) {
-            // normalizar estado (ejemplo: si checkbox-> disponible -> null / 'prestado')
-            $copia->estado = $validated['estado'];
-        }
+        // --- FIN ubicacion ---
 
         $copia->save();
 
-        // Recalcular stock en libro (si tu modelo lo tiene)
-        if ($copia->libro) {
-            if (method_exists($copia->libro, 'recalcularStock')) {
-                $copia->libro->recalcularStock();
-            }
+        // Recalcular stock si aplicable
+        if ($copia->libro && method_exists($copia->libro, 'recalcularStock')) {
+            $copia->libro->recalcularStock();
         }
 
-        // Si es petición AJAX respondemos JSON
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
@@ -93,9 +91,9 @@ class CopiaController extends Controller
             ]);
         }
 
-        // fallback: redirigir
         return redirect()->back()->with('success', 'Copia actualizada correctamente');
     }
+
 
     public function destroy($id)
     {
