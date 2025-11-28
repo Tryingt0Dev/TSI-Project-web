@@ -9,22 +9,6 @@ class PrestamoSeeder extends Seeder
 {
     public function run(): void
     {
-        Prestamo::create([
-            'user_id' => 1,
-            'rut_alumno' => '123123123',
-            'id_copia' => 1,
-            'fecha_inicio' => now()->subDays(3), // para la fecha manual '2025-11-01'
-            'fecha_limite' => now()->addDays(7),
-            'estado' => 'Pendiente', // Pendiente
-        ]);
-
-        Prestamo::create([
-            'user_id' => 2,
-            'rut_alumno' => '456456456',
-            'id_copia' => 4,
-            'fecha_inicio' => now()->subDays(10),
-            'fecha_limite' => now()->subDays(2),
-            'estado' => 'Pendiente', // Devuelto
-        ]);
+      
     }
 }
