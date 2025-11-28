@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('alumnos', function (Blueprint $table) {
             // clave primaria
-            $table->id('rut_alumno');
+            $table->string('rut_alumno', 10)->primary();
             
             // columnas
             $table->string('nombre_alumno');
