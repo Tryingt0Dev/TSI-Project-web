@@ -40,7 +40,7 @@
 
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Nombre alumno</label>
-                    <input type="text" name="nombre" value="{{ request('nombre') }}" class="form-control" placeholder="Nombre o apellido">
+                    <input type="text" name="nombre_alumno" value="{{ request('nombre_alumno') }}" class="form-control" placeholder="Nombre o apellido">
                 </div>
 
                 <div class="col-12 col-md-2 mt-2">

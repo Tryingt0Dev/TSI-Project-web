@@ -11,11 +11,22 @@ use Illuminate\Validation\ValidationException;
 
 class PrestamoController extends Controller
 {
-    public function index(Request $request) // Mostrar listado de préstamos (paginado).
+    public function index(Request $request)
     {
-        $prestamos = Prestamo::with(['alumno', 'user', 'copias'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = Prestamo::with(['alumno', 'user', 'copias'])->orderBy('created_at', 'desc');
+
+        if ($request->filled('fecha_from')) { $query->whereDate('fecha_prestamo', '>=', $request->fecha_from);}
+
+        if ($request->filled('fecha_to')) { $query->whereDate('fecha_devolucion_prevista', '<=', $request->fecha_to);}
+
+        if ($request->filled('rut')) { $query->where('rut_alumno', 'like', '%' . $request->rut . '%');}
+
+        if ($request->filled('nombre_alumno')) { $query->whereHas('alumno', function ($q) use ($request) {
+                $q->where('nombre_alumno', 'like', '%' . $request->nombre_alumno . '%')
+                ->orWhere('apellido_alumno', 'like', '%' . $request->nombre_alumno . '%');});}
+
+        $perPage = $request->input('per_page', 10);
+        $prestamos = $query->paginate($perPage)->appends($request->all());
 
         return view('prestamos.index', compact('prestamos'));
     }
@@ -23,8 +34,7 @@ class PrestamoController extends Controller
     public function create() // Mostrar formulario de creación.
     {
         $copias = Copia::with('libro')
-            ->where('estado', 'Disponible') // traer solo copias disponibles
-            ->get();
+            ->where('estado', 'Disponible')->get(); // traer solo copias disponibles
 
         $alumnos = Alumno::orderBy('nombre_alumno')->get();
 
@@ -78,7 +88,9 @@ class PrestamoController extends Controller
                 ];
             }
             $prestamo->copias()->attach($attach);
+            
         });
+        return redirect()->route('prestamos.index')->with('success', 'Préstamo registrado correctamente.');
     }
 
     public function updateCopia(Request $request, $idPrestamo, $idCopia) // deja actualizar individualmente las copias para entregarlas

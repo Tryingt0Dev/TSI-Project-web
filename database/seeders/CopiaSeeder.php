@@ -16,7 +16,7 @@ class CopiaSeeder extends Seeder
             // crea 4 copias por libro de ejemplo
                 Copia::create([
                     'id_libro_interno' => $libro->id_libro_interno,
-                    'estado' => 'Prestado',
+                    'estado' => 'Disponible',
                     'id_ubicacion' => $libro->id_ubicacion,
                 ]);
                 Copia::create([
