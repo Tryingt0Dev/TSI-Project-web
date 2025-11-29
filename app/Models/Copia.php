@@ -34,7 +34,7 @@ class Copia extends Model
             'copias_prestamos',
             'id_copia',
             'id_prestamo'
-        )->withPivot(['estado','fecha_prestamo','fecha_devolucion_real'])
+        )->withPivot(['estado','fecha_prestamo'])
          ->withTimestamps();
     }
 

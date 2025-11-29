@@ -11,34 +11,19 @@ use Illuminate\Validation\ValidationException;
 
 class PrestamoController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request) // Portada de los prestamos
     {
         $query = Prestamo::with(['alumno', 'user', 'copias'])->orderBy('created_at', 'desc');
 
-        // filtro por estado (activo|devuelto|vencido)
-        if ($request->filled('estado')) {
-            $estadoFiltro = strtolower($request->estado);
-            $query->where('estado', $estadoFiltro);
-        }
+        if ($request->filled('fecha_from')) { $query->whereDate('fecha_prestamo', '>=', $request->fecha_from);}
 
-        if ($request->filled('fecha_from')) {
-            $query->whereDate('fecha_prestamo', '>=', $request->fecha_from);
-        }
+        if ($request->filled('fecha_to')) { $query->whereDate('fecha_devolucion_prevista', '<=', $request->fecha_to);}
 
-        if ($request->filled('fecha_to')) {
-            $query->whereDate('fecha_devolucion_prevista', '<=', $request->fecha_to);
-        }
+        if ($request->filled('rut')) { $query->where('rut_alumno', 'like', '%' . $request->rut . '%');}
 
-        if ($request->filled('rut')) {
-            $query->where('rut_alumno', 'like', '%' . $request->rut . '%');
-        }
-
-        if ($request->filled('nombre_alumno')) {
-            $query->whereHas('alumno', function ($q) use ($request) {
+        if ($request->filled('nombre_alumno')) { $query->whereHas('alumno', function ($q) use ($request) {
                 $q->where('nombre_alumno', 'like', '%' . $request->nombre_alumno . '%')
-                  ->orWhere('apellido_alumno', 'like', '%' . $request->nombre_alumno . '%');
-            });
-        }
+                ->orWhere('apellido_alumno', 'like', '%' . $request->nombre_alumno . '%');});}
 
         $perPage = $request->input('per_page', 10);
         $prestamos = $query->paginate($perPage)->appends($request->all());
@@ -46,34 +31,30 @@ class PrestamoController extends Controller
         return view('prestamos.index', compact('prestamos'));
     }
 
-    public function detalle($id)
+    public function detalle($id) // Vista para ver los detalles del prestamo
     {
         $prestamo = Prestamo::with(['alumno', 'copias.libro'])->findOrFail($id);
         return view('prestamos.detalle', compact('prestamo'));
     }
 
-    public function show($id)
+    public function show($id) // Vista para poder editar el prestamo (solo cuando aun no este devuelto)
     {
         $prestamo = Prestamo::with(['alumno', 'copias.libro'])->findOrFail($id);
-        if ($prestamo->estado === 'devuelto') {
-            return redirect()->route('prestamos.index')->with('error', 'Este préstamo ya fue devuelto y no puede abrirse para edición.');
-        }
+        if ($prestamo->estado === 'devuelto') { return redirect()->route('prestamos.index')->with('error', 'Este préstamo ya fue devuelto y no puede abrirse para edición.');}
         return view('prestamos.show', compact('prestamo'));
     }
 
-    public function create()
+    public function create() // Muestra formulario de creación.
     {
-        // traer solo copias disponibles: normalizamos comparación en minúscula
         $copias = Copia::with('libro')
-            ->whereRaw('LOWER(estado) = ?', ['disponible'])
-            ->get();
+            ->where('estado', 'Disponible')->get(); // traer solo copias disponibles
 
         $alumnos = Alumno::orderBy('nombre_alumno')->get();
 
         return view('prestamos.create', compact('copias', 'alumnos'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request) // Crea el prestamo y asocia las copias (1 o mas)
     {
         $validated = $request->validate([
             'id_usuario' => 'required|exists:users,id',
@@ -81,32 +62,25 @@ class PrestamoController extends Controller
             'copias' => 'required|array|min:1',
             'copias.*' => 'required|integer|exists:copia,id_copia',
             'fecha_devolucion_prevista' => 'nullable|date|after_or_equal:today',
-        ], [
-            'copias.required' => 'Debes seleccionar al menos una copia.',
-            'copias.array' => 'Formato de copias inválido.',
-            'copias.*.exists' => 'Alguna copia seleccionada no existe.',
         ]);
 
-        // normalizar ids (int)
+        // Verificar disponibilidad de cada copia antes de comenzar transacción
         $copiasIds = array_map('intval', $validated['copias']);
+        $copiasModels = Copia::whereIn('id_copia', $copiasIds)->lockForUpdate()->get();
 
-        // bloquear y traer modelos
-        $copiasModels = \App\Models\Copia::whereIn('id_copia', $copiasIds)->lockForUpdate()->get();
-
+        // comprobar que todas existan y estén disponibles
         if ($copiasModels->count() !== count($copiasIds)) {
-            return back()->withErrors(['copias' => 'Alguna copia seleccionada no existe o fue eliminada.'])->withInput();
+            throw ValidationException::withMessages(['copias' => 'Alguna copia no existe.']);
         }
-
-        // comprobar disponibilidad (normalizamos estado)
         foreach ($copiasModels as $c) {
-            $estado = trim(strtolower((string)($c->estado ?? '')));
-            if ($estado === 'prestado') {
-                return back()->withErrors(['copias' => "La copia {$c->id_copia} no está disponible."])->withInput();
+            $estado = strtolower(trim((string) ($c->estado ?? '')));
+            if ($estado === 'Prestado') {
+                throw ValidationException::withMessages(['copias' => "La copia {$c->id_copia} no está disponible."]);
             }
         }
 
         DB::transaction(function () use ($validated, $copiasModels, &$prestamo) {
-            $prestamo = Prestamo::create([
+            $prestamo = Prestamo::create([ // Crea registro del préstamo
                 'id_usuario' => auth()->id(),
                 'rut_alumno' => $validated['rut_alumno'],
                 'fecha_prestamo' => now(),
@@ -114,141 +88,32 @@ class PrestamoController extends Controller
                 'estado' => 'activo',
             ]);
 
-            $ids = $copiasModels->pluck('id_copia')->map(fn($v) => (int)$v)->toArray();
-
-            // usa el helper del modelo para adjuntar y marcar copias como 'prestado'
-            if (method_exists($prestamo, 'attachCopiasConEstado')) {
-                $prestamo->attachCopiasConEstado($ids);
-            } else {
-                // fallback: attach manual
-                $attach = [];
-                foreach ($copiasModels as $c) {
-                    $c->estado = 'prestado';
-                    $c->save();
-                    $attach[$c->id_copia] = ['estado' => 'prestado', 'fecha_prestamo' => now()];
-                }
-                $prestamo->copias()->attach($attach);
+            // asocia copias y marcar cada copia como prestada
+            $attach = [];
+            foreach ($copiasModels as $c) {
+                // actualiza el estado de la copia en la tabla principal
+                $c->estado = 'Prestado';
+                $c->save();
+                // actualiza el estado de la copia en el pivote 
+                $attach[$c->id_copia] = [
+                    'estado' => 'Prestado',
+                    'fecha_prestamo' => now(),
+                ];
             }
+            $prestamo->copias()->attach($attach);
+            
         });
-
         return redirect()->route('prestamos.index')->with('success', 'Préstamo registrado correctamente.');
     }
 
-    // actualizar estado de una copia específica dentro de un préstamo (ej: devolver una copia)
-    public function updateCopia(Request $request, $idPrestamo, $idCopia)
-    {
-        $prestamo = Prestamo::findOrFail($idPrestamo);
-        $nuevoEstado = strtolower(trim((string) $request->input('estado')));
-
-        DB::transaction(function () use ($prestamo, $idCopia, $nuevoEstado) {
-            $copia = Copia::findOrFail($idCopia);
-            $copia->estado = $nuevoEstado === 'disponible' ? 'disponible' : $nuevoEstado;
-            $copia->save();
-
-            $copia_prestamo = ['estado' => $nuevoEstado];
-            if ($nuevoEstado === 'disponible') {
-                $copia_prestamo['fecha_devolucion_real'] = now();
-            }
-
-            $prestamo->copias()->updateExistingPivot($idCopia, $copia_prestamo);
-        });
-
-        if ($this->todasDevueltas($prestamo->id_prestamo)) {
-            return redirect()->route('prestamos.comentario', $prestamo->id_prestamo);
-        }
-
-        return back()->with('success', "La copia $idCopia fue actualizada a $nuevoEstado");
-    }
-
-    protected function todasDevueltas($idPrestamo)
-    {
-        $prestamo = Prestamo::with('copias')->findOrFail($idPrestamo);
-        // considerar copia devuelta si su estado en tabla 'copia' es 'disponible' (minúscula)
-        return $prestamo->copias->every(fn($copia) => strtolower((string)$copia->estado) === 'disponible');
-    }
-
-    // Nuevo: actualizar solo el estado global del préstamo (marcar devuelto, vencido, etc.)
-    public function updateEstado(Request $request, Prestamo $prestamo)
-    {
-        $data = $request->validate([
-            'estado' => 'required|string|in:activo,devuelto,vencido',
-        ]);
-
-        $nuevoEstado = strtolower($data['estado']);
-
-        DB::transaction(function() use ($prestamo, $nuevoEstado) {
-            // actualizar prestamo
-            $prestamo->estado = $nuevoEstado;
-            if ($nuevoEstado === 'devuelto') {
-                $prestamo->fecha_devolucion_real = now();
-            }
-            $prestamo->save();
-
-            // actualizar pivot y copias: si devuelto => marcar copias como disponible
-            if (method_exists($prestamo, 'copias')) {
-                foreach ($prestamo->copias as $copia) {
-                    // actualizar pivot
-                    $prestamo->copias()->updateExistingPivot(
-                        $copia->getKey(),
-                        ['estado' => $nuevoEstado === 'devuelto' ? 'disponible' : $nuevoEstado, 'updated_at' => now()]
-                    );
-
-                    // actualizar tabla copia
-                    if ($nuevoEstado === 'devuelto') {
-                        $copia->estado = 'disponible';
-                        $copia->save();
-                    }
-                }
-            }
-        });
-
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Estado actualizado',
-                'prestamo' => $prestamo->fresh('copias'),
-            ]);
-        }
-
-        return redirect()->route('prestamos.index')->with('success', 'Estado actualizado.');
-    }
-
-    public function finalizar(Request $request, $idPrestamo)
-    {
-        $prestamo = Prestamo::findOrFail($idPrestamo);
-
-        $request->validate([
-            'observaciones' => 'required|string|max:1000',
-        ]);
-
-        $prestamo->estado = 'devuelto';
-        $prestamo->fecha_devolucion_real = now();
-        $prestamo->observaciones = $request->observaciones;
-        $prestamo->save();
-
-        return redirect()->route('prestamos.index')->with('success', 'Préstamo devuelto con comentario registrado');
-    }
-
-    public function comentario($id)
-    {
-        $prestamo = Prestamo::with(['alumno', 'copias.libro'])->findOrFail($id);
-
-        // Verifica que todas las copias estén devueltas
-        if (!$this->todasDevueltas($prestamo->id_prestamo)) {
-            return redirect()->route('prestamos.show', $id)
-                ->with('error', 'No puedes finalizar el préstamo hasta que todas las copias estén devueltas.');
-        }
-
-        return view('prestamos.comentario', compact('prestamo'));
-    }
-
-    public function destroy($id)
+    public function destroy($id) // borra el prestamo (sigue en uso su clave primaria)
     {
         $prestamo = Prestamo::findOrFail($id);
 
         DB::transaction(function () use ($prestamo) {
+            
             foreach ($prestamo->copias as $copia) {
-                $copia->estado = 'disponible';
+                $copia->estado = 'Disponible';
                 $copia->save();
             }
 
@@ -259,4 +124,67 @@ class PrestamoController extends Controller
 
         return redirect()->route('prestamos.index')->with('success', 'Préstamo eliminado correctamente.');
     }
+
+    public function entregarTodas($idPrestamo) // entrega todas las copias del prestamo (el prestamo queda Devuelto)
+    {
+        $prestamo = Prestamo::with('copias')->findOrFail($idPrestamo);
+
+        DB::transaction(function () use ($prestamo) {
+            foreach ($prestamo->copias as $copia) {
+                $copia->estado = 'Disponible';
+                $copia->save();
+
+                $copia_prestamo = [
+                    'estado' => 'Disponible',
+                    'fecha_devolucion_real' => now(),
+                ];
+                $prestamo->copias()->updateExistingPivot($copia->id_copia, $copia_prestamo);
+            }
+
+            // Si todas están devueltas, marcamos el préstamo como devuelto
+            if ($prestamo->copias->every(fn($c) => $c->estado === 'Disponible')) {
+                $prestamo->estado = 'Devuelto';
+                $prestamo->fecha_devolucion_real = now();
+                $prestamo->save();
+            }
+        });
+
+        return redirect()->route('prestamos.index')->with('success', 'Todas las copias fueron entregadas y están disponibles.');
+    }
+
+    public function updateCopiasYComentario(Request $request, $idPrestamo) // Para poder entregar las copias con mas detalle y agregar un comentario
+    {
+        $prestamo = Prestamo::findOrFail($idPrestamo);
+
+        DB::transaction(function () use ($request, $prestamo) {
+            // Actualizar copias
+            foreach ($request->input('copias', []) as $idCopia => $estado) {
+                $copia = Copia::findOrFail($idCopia);
+                $copia->estado = $estado;
+                $copia->save();
+
+                $pivotData = ['estado' => $estado];
+                if ($estado === 'Disponible') {
+                    $pivotData['fecha_devolucion_real'] = now();
+                }
+                $prestamo->copias()->updateExistingPivot($idCopia, $pivotData);
+            }
+
+            // Actualizar observaciones
+            $prestamo->observaciones = trim($request->input('observaciones'));
+            $prestamo->save();
+
+            // Si todas están devueltas, marcamos el préstamo como devuelto
+            if ($prestamo->copias->every(fn($c) => $c->estado === 'Disponible')) {
+                $prestamo->estado = 'Devuelto';
+                $prestamo->fecha_devolucion_real = now();
+                $prestamo->save();
+            }
+        });
+
+        return redirect()->route('prestamos.detalle', $prestamo->id_prestamo)->with('success', 'Copias y observaciones actualizadas correctamente.');
+    }
+
 }
+
+    

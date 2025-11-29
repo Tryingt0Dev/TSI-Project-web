@@ -20,7 +20,18 @@
     <hr>
 
     {{-- Listado de copias --}}
+    <div class="d-flex justify-content-between align-items-center">
     <h5>Copias asociadas</h5>
+    @if($prestamo->estado !== 'devuelto')
+    <a href="{{ route('prestamos.show', $prestamo->id_prestamo) }}"  
+       class="btn btn-sm btn-outline-warning me-1"  
+       title="Actualizar copias">
+        <i class="bi bi-journal-check"></i>
+        Editar
+    </a>
+    @endif
+    </div>
+    
     @foreach($prestamo->copias as $copia)
         <div class="card mb-2">
             <div class="card-body d-flex justify-content-between align-items-center">
@@ -33,6 +44,7 @@
     @endforeach
 
     <hr>
+    
 
     {{-- Comentario / Observaciones --}}
     <h5>Observaciones</h5>

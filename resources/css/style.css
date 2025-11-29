@@ -443,3 +443,11 @@ body {
   .action-btns { gap: 0.25rem; }
   .table td .fw-semibold { max-width: 140px; }
 }
+
+/* boton */
+.btn-xs { 
+    padding: 0.15rem 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    border-radius: 0.2rem;
+}

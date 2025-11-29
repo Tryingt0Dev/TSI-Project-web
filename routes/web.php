@@ -52,19 +52,13 @@ Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
     Route::resource('usuarios', UsuarioController::class);
 });
 // Prestamos
-Route::middleware('auth')->group(function () {
-    Route::get('prestamos', [\App\Http\Controllers\PrestamoController::class, 'index'])
-        ->name('prestamos.index');
 
-    Route::patch('prestamos/{prestamo}/estado', [\App\Http\Controllers\PrestamoController::class, 'updateEstado'])
-        ->name('prestamos.update.estado');
+Route::middleware('auth')->group(function () {
+    Route::resource('prestamos', \App\Http\Controllers\PrestamoController::class);
+    Route::get('/prestamos/{id}/detalle', [PrestamoController::class, 'detalle'])->name('prestamos.detalle');
+    Route::put('/prestamos/{prestamo}/entregar-todas', [PrestamoController::class, 'entregarTodas'])->name('prestamos.entregarTodas');
+    Route::put('/prestamos/{prestamo}/update-copias-comentario', [PrestamoController::class, 'updateCopiasYComentario'])->name('prestamos.updateCopiasYComentario');
 });
-Route::resource('prestamos', \App\Http\Controllers\PrestamoController::class)->middleware('auth');
-Route::resource('prestamos', \App\Http\Controllers\PrestamoController::class);
-Route::patch('/prestamos/{idPrestamo}/copias/{idCopia}', [PrestamoController::class, 'updateCopia'])->name('prestamos.updateCopia');
-Route::get('/prestamos/{id}/comentario', [PrestamoController::class, 'comentario'])->name('prestamos.comentario');
-Route::get('/prestamos/{id}/detalle', [PrestamoController::class, 'detalle'])->name('prestamos.detalle');
-Route::post('/prestamos/{id}/finalizar', [PrestamoController::class, 'finalizar'])->name('prestamos.finalizar');
 
 //alumnos
 Route::middleware(['auth'])->group(function () {

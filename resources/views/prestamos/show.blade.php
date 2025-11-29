@@ -8,10 +8,22 @@
     <p><strong>Alumno:</strong> {{ $prestamo->alumno->nombre_alumno }} {{ $prestamo->alumno->apellido_alumno }}</p>
     <p><strong>Fecha préstamo:</strong> {{ $prestamo->fecha_prestamo->format('d/m/Y') }}</p>
     <p><strong>Fecha devolución prevista:</strong> {{ $prestamo->fecha_devolucion_prevista?->format('d/m/Y') ?? 'No definida' }}</p>
-
+    <p><strong>Fecha devolución real:</strong> {{ $prestamo->fecha_devolucion_real?->format('d/m/Y') ?? 'Pendiente' }}</p>
+    <p><strong>Estado:</strong> 
+        @if($prestamo->estado === 'devuelto')
+            <span class="badge bg-success">Devuelto</span>
+        @else
+            <span class="badge bg-warning">{{ ucfirst($prestamo->estado) }}</span>
+        @endif
+    </p>
+    
     <hr>
 
-    {{-- Listado de copias --}}
+{{-- Listado de copias y observaciones --}}
+<form action="{{ route('prestamos.updateCopiasYComentario', $prestamo->id_prestamo) }}" method="POST">
+    @csrf
+    @method('PUT')
+
     <h5>Copias asociadas</h5>
     @foreach($prestamo->copias as $copia)
         <div class="card mb-2">
@@ -21,22 +33,26 @@
                     <span class="badge bg-secondary">{{ $copia->pivot->estado }}</span>
                 </div>
 
-                {{-- Formulario para actualizar estado de la copia --}}
-                <form method="POST" action="{{ route('prestamos.updateCopia', [$prestamo->id_prestamo, $copia->id_copia]) }}">
-                    @csrf
-                    @method('PATCH')
-
-                    <select name="estado" class="form-select form-select-sm d-inline-block w-auto me-2">
-                        <option value="Prestado" {{ $copia->pivot->estado === 'Prestado' ? 'selected' : '' }}>Prestado</option>
-                        <option value="Disponible" {{ $copia->pivot->estado === 'Disponible' ? 'selected' : '' }}>Disponible</option>
-                    </select>
-
-                    <button type="submit" class="btn btn-sm btn-outline-primary">Actualizar</button>
-                </form>
+                {{-- Selector de estado de la copia --}}
+                <select name="copias[{{ $copia->id_copia }}]" 
+                        class="form-select form-select-sm d-inline-block w-auto me-2">
+                    <option value="Prestado" {{ $copia->pivot->estado === 'Prestado' ? 'selected' : '' }}>Prestado</option>
+                    <option value="Disponible" {{ $copia->pivot->estado === 'Disponible' ? 'selected' : '' }}>Disponible</option>
+                </select>
             </div>
         </div>
     @endforeach
 
-    <a href="{{ route('prestamos.index') }}" class="btn btn-outline-secondary mt-3">Volver al listado</a>
+    {{-- Observaciones --}}
+    <h5>Observaciones</h5>
+    <textarea name="observaciones" class="form-control mb-3" rows="3">{{ old('observaciones', $prestamo->observaciones) }}</textarea>
+
+    {{-- Botones de acción --}}
+    <div class="d-flex justify-content-start">
+        <button type="submit" class="btn btn-success btn-lg me-2">Guardar y Volver</button>
+        <a href="{{ route('prestamos.detalle', $prestamo->id_prestamo) }}" class="btn btn-secondary btn-lg">Cancelar</a>
+    </div>
+</form>
+
 </div>
 @endsection
