@@ -30,7 +30,6 @@ return new class extends Migration {
             $table->foreign('id_genero')->references('id_genero')->on('generos')->onDelete('cascade');
 
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
