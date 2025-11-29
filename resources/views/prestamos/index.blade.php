@@ -1,165 +1,230 @@
 @extends('layouts.app')
 
-@section('title', 'Lista de Prestamos')
-
 @section('content')
 <div class="container">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3>Préstamos</h3>
 
-    {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h4">
-            <i class="bi bi-receipt text-primary me-2"></i>
-            Gestión de Préstamos
-        </h1>
-
-        <a href="{{ route('prestamos.create') }}" class="btn btn-success">
-            <i class="bi bi-plus-circle me-1"></i> Crear Préstamo
-        </a>
-    </div>
-
-    {{-- Filtros: fecha (desde-hasta), rut, nombre --}}
-    <div class="card shadow-sm mb-3">
-        <div class="card-body">
-            <form method="GET" action="{{ route('prestamos.index') }}" class="row g-2 align-items-end">
-                <input type="hidden" name="per_page" value="15">
-
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Fecha desde</label>
-                    <input type="date" name="fecha_from" value="{{ request('fecha_from') }}" class="form-control">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Fecha hasta</label>
-                    <input type="date" name="fecha_to" value="{{ request('fecha_to') }}" class="form-control">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">RUT alumno</label>
-                    <input type="text" name="rut" value="{{ request('rut') }}" class="form-control" placeholder="Ej: 12345678-9">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Nombre alumno</label>
-                    <input type="text" name="nombre_alumno" value="{{ request('nombre_alumno') }}" class="form-control" placeholder="Nombre o apellido">
-                </div>
-
-                <div class="col-12 col-md-2 mt-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search me-1"></i> Buscar
-                    </button>
-                </div>
-
-                <div class="col-12 col-md-2 mt-2">
-                    <a href="{{ route('prestamos.index') }}" class="btn btn-outline-secondary w-100">Limpiar</a>
-                </div>
-            </form>
+        <div>
+            <a href="{{ route('prestamos.index') }}" class="btn btn-outline-secondary btn-sm me-1 {{ request('estado') ? '' : 'active' }}">Todos</a>
+            <a href="{{ route('prestamos.index', array_merge(request()->except('page'), ['estado' => 'activo'])) }}" class="btn btn-outline-primary btn-sm me-1 {{ request('estado') === 'activo' ? 'active' : '' }}">Pendientes</a>
+            <a href="{{ route('prestamos.index', array_merge(request()->except('page'), ['estado' => 'devuelto'])) }}" class="btn btn-outline-success btn-sm me-1 {{ request('estado') === 'devuelto' ? 'active' : '' }}">Devueltos</a>
+            <a href="{{ route('prestamos.index', array_merge(request()->except('page'), ['estado' => 'vencido'])) }}" class="btn btn-outline-warning btn-sm {{ request('estado') === 'vencido' ? 'active' : '' }}">Vencidos</a>
         </div>
     </div>
 
-    {{-- Tabla --}}
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>ID Prestamo</th>
-                            <th>Alumno (RUT / Nombre)</th>
-                            <th>Copias</th>
-                            <th>Fecha inicio</th>
-                            <th>Fecha límite</th>
-                            <th>Estado</th>
-                            <th class="text-end">Acciones</th>
-                        </tr>
-                    </thead>
+    {{-- filtros existentes (fecha_from, fecha_to, rut, nombre_alumno, per_page) --}}
+    <form class="row g-2 mb-3" method="GET" action="{{ route('prestamos.index') }}">
+        <div class="col-auto">
+            <input type="date" class="form-control" name="fecha_from" value="{{ request('fecha_from') }}" placeholder="Desde">
+        </div>
+        <div class="col-auto">
+            <input type="date" class="form-control" name="fecha_to" value="{{ request('fecha_to') }}" placeholder="Hasta">
+        </div>
+        <div class="col-auto">
+            <input type="text" class="form-control" name="rut" placeholder="RUT" value="{{ request('rut') }}">
+        </div>
+        <div class="col-auto">
+            <input type="text" class="form-control" name="nombre_alumno" placeholder="Nombre alumno" value="{{ request('nombre_alumno') }}">
+        </div>
+        <div class="col-auto">
+            <select name="per_page" class="form-select">
+                @foreach([10,25,50,100] as $n)
+                    <option value="{{ $n }}" {{ request('per_page',10) == $n ? 'selected' : '' }}>{{ $n }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" type="submit">Filtrar</button>
+        </div>
+    </form>
 
-                    <tbody>
-                        @forelse ($prestamos as $prestamo)
-                            <tr>
-                                <td class="fw-semibold">{{ $prestamo->id_prestamo }}</td>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Alumno</th>
+                        <th>Usuario</th>
+                        <th>Copias (pivot estado)</th>
+                        <th>Fecha préstamo</th>
+                        <th>Fecha prevista</th>
+                        <th>Estado</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($prestamos as $p)
+                    <tr id="prestamo-row-{{ $p->getKey() }}">
+                        <td class="align-middle">{{ $p->getKey() }}</td>
+                        <td class="align-middle">{{ $p->alumno->rut_alumno ?? 'N/A' }} - {{ $p->alumno->nombre_alumno ?? ($p->alumno->nombre ?? '') }}</td>
+                        <td class="align-middle">{{ $p->user->name ?? 'Sistema' }}</td>
+                        <td class="align-middle">
+                            @foreach($p->copias as $c)
+                                <div>Cop {{ $c->getKey() }} — {{ $c->pivot->estado ?? '' }}</div>
+                            @endforeach
+                        </td>
+                        <td class="align-middle">{{ optional($p->fecha_prestamo)->format('Y-m-d') }}</td>
+                        <td class="align-middle">{{ optional($p->fecha_devolucion_prevista)->format('Y-m-d') }}</td>
+                        <td class="align-middle">
+                            @if($p->estado === 'activo')
+                                <span class="badge bg-primary">Pendiente</span>
+                            @elseif($p->estado === 'devuelto')
+                                <span class="badge bg-success">Devuelto</span>
+                            @elseif($p->estado === 'vencido')
+                                <span class="badge bg-warning text-dark">Vencido</span>
+                            @else
+                                <span class="badge bg-secondary">{{ $p->estado }}</span>
+                            @endif
+                        </td>
+                        <td class="text-end align-middle">
+                            <div class="d-inline-flex gap-1">
+                                {{-- Ver detalle (usa tu ruta personalizada) --}}
+                                <a href="{{ route('prestamos.detalle', $p->getKey()) }}" class="btn btn-sm btn-outline-secondary" title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
 
-                                <td>
-                                    {{-- Mostrar rut y nombre si existen --}}
-                                    {{ $prestamo->rut_alumno ?? '-' }}
-                                    @if(isset($prestamo->alumno))
-                                        / {{ $prestamo->alumno->nombre_alumno ?? '' }} {{ $prestamo->alumno->apellido_alumno ?? '' }}
-                                    @else
-                                        @if(!empty($prestamo->nombre_alumno))
-                                            / {{ $prestamo->nombre_alumno }}
-                                        @endif
-                                    @endif
-                                </td>
+                                {{-- Editar (resource edit). Deshabilitado si ya está devuelto --}}
+                                
 
-                                <td>
-                                    {{-- Si usas pivot prestamo_copia y relación copias, listarlas --}}
-                                    @if($prestamo->copias && $prestamo->copias->count())
-                                        @foreach($prestamo->copias as $c)
-                                            <span class="badge bg-light text-dark me-1">ID {{ $c->id_copia ?? $c->id }}</span>
-                                        @endforeach
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-
-                                <td class="text-muted">{{ optional($prestamo->fecha_prestamo)->format('Y-m-d H:i') ?? ($prestamo->fecha_prestamo ?? '-') }}</td>
-                                <td>{{ optional($prestamo->fecha_devolucion_prevista)->format('Y-m-d') ?? ($prestamo->fecha_devolucion_prevista ?? '-') }}</td>
-
-                                <td>
-                                    @php
-                                        $estado = strtolower($prestamo->estado ?? ($prestamo->entregado == 1 ? 'devuelto' : 'pendiente'));
-                                    @endphp
-
-                                    @if(in_array($estado, ['activo','pendiente','1','0']) && ($prestamo->entregado ?? null) != 1)
-                                        <span class="badge bg-secondary">Pendiente</span>
-                                    @elseif(in_array($estado, ['devuelto','devuelto','1']) || ($prestamo->entregado ?? null) == 1)
-                                        <span class="badge bg-success">Devuelto</span>
-                                    @else
-                                        <span class="badge bg-danger text-white">Perdido</span>
-                                    @endif
-                                </td>
-
-                                <td class="text-end">
-                                    <div class="d-inline-flex align-items-center">
-                                        <a href="{{ route('prestamos.detalle', $prestamo->id_prestamo) }}" class="btn btn-sm btn-outline-secondary me-1" title="Ver">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-
-                                        <a href="{{ route('prestamos.show', $prestamo->id_prestamo) }}" 
-                                            class="btn btn-sm btn-outline-warning me-1" 
-                                            title="Actualizar copias">
-                                            <i class="bi bi-journal-check"></i>
-                                        </a>
-
-                                        <form action="{{ route('prestamos.destroy', $prestamo->id_prestamo) }}" method="POST" class="d-inline-block ms-1"
-                                              onsubmit="return confirm('¿Confirmas que quieres eliminar el préstamo #{{ $prestamo->id_prestamo }} ?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">
-                                    No se encontraron préstamos registrados.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-
-                </table>
-            </div>
+                                {{-- Marcar devuelto (solo si no está devuelto) --}}
+                                @if($p->estado !== 'devuelto')
+                                    <button class="btn btn-sm btn-success btn-mark-returned"
+                                            data-id="{{ $p->getKey() }}"
+                                            data-update-url="{{ route('prestamos.update.estado', $p->getKey()) }}"
+                                            title="Marcar devuelto">
+                                        <i class="bi bi-arrow-counterclockwise"></i>Marcar Devuelto
+                                    </button>
+                                @else
+                                    <span class="text-muted align-self-center px-2">—</span>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="8" class="text-center py-3">No hay préstamos</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            {{ $prestamos->links('pagination::bootstrap-5') }}
         </div>
     </div>
+</div>
 
-    {{-- Paginación (forzar mantener querystring) --}}
-    <div class="mt-7 d-flex justify-content-center  ">
-        {{ $prestamos->withQueryString()->links('pagination::bootstrap-5') }}
-    </div>
-
+{{-- Modal confirm --}}
+<div class="modal fade" id="confirmReturnModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form id="formMarkReturned" method="POST">
+      @csrf
+      @method('PATCH')
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar devolución</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>¿Deseas marcar este préstamo como <strong>devuelto</strong>? Esta acción actualizará el estado del préstamo y de las copias asociadas.</p>
+          <input type="hidden" id="prestamo_id" name="prestamo_id">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Sí, marcar devuelto</button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('confirmReturnModal');
+    const bsModal = new bootstrap.Modal(modalEl);
+    const form = document.getElementById('formMarkReturned');
+    let currentUrl = '';
+    let currentId = null;
+
+    document.querySelectorAll('.btn-mark-returned').forEach(btn => {
+        btn.addEventListener('click', function () {
+            currentId = btn.dataset.id;
+            currentUrl = btn.dataset.updateUrl;
+            document.getElementById('prestamo_id').value = currentId;
+            form.action = currentUrl;
+            bsModal.show();
+        });
+    });
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (!currentUrl) return;
+
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const token = tokenMeta ? tokenMeta.getAttribute('content') : '';
+
+        const fd = new FormData();
+        fd.set('_method', 'PATCH');
+        fd.set('estado', 'devuelto');
+
+        try {
+            const res = await fetch(currentUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                body: fd
+            });
+
+            const json = await res.json().catch(()=>null);
+
+            if (!res.ok) throw new Error((json && json.message) ? json.message : 'Error servidor');
+
+            // actualizar UI: badge y quitar botón
+            const row = document.getElementById('prestamo-row-' + currentId);
+            if (row) {
+                const estadoCell = row.querySelector('td:nth-child(7)');
+                if (estadoCell) estadoCell.innerHTML = '<span class="badge bg-success">Devuelto</span>';
+
+                const actionCell = row.querySelector('td:last-child');
+                if (actionCell) {
+                    // reemplazar acciones por ver + edit(disabled) + placeholder
+                    actionCell.innerHTML = `
+                      <div class="d-inline-flex gap-1">
+                        <a href="#" class="btn btn-sm btn-outline-secondary" title="Ver detalle"><i class="bi bi-eye"></i></a>
+                        <button class="btn btn-sm btn-outline-primary" disabled title="Editar"><i class="bi bi-pencil-square"></i></button>
+                        <span class="text-muted align-self-center px-2">—</span>
+                      </div>
+                    `;
+                }
+            }
+
+            bsModal.hide();
+
+            // toast
+            const toastHtml = `<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                  <div class="d-flex">
+                    <div class="toast-body">Préstamo marcado como devuelto</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                  </div>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', toastHtml);
+            const toastEl = document.querySelector('.toast');
+            new bootstrap.Toast(toastEl, { delay: 2500 }).show();
+            setTimeout(()=> toastEl.remove(), 3500);
+
+        } catch (err) {
+            console.error(err);
+            alert('No se pudo actualizar el estado: ' + (err.message || 'Revisa la consola'));
+        }
+    });
+});
+</script>
+@endpush

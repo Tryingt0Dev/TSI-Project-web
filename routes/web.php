@@ -49,7 +49,14 @@ Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
     Route::resource('usuarios', UsuarioController::class);
 });
 // Prestamos
+Route::middleware('auth')->group(function () {
+    Route::get('prestamos', [\App\Http\Controllers\PrestamoController::class, 'index'])
+        ->name('prestamos.index');
 
+    Route::patch('prestamos/{prestamo}/estado', [\App\Http\Controllers\PrestamoController::class, 'updateEstado'])
+        ->name('prestamos.update.estado');
+});
+Route::resource('prestamos', \App\Http\Controllers\PrestamoController::class)->middleware('auth');
 Route::resource('prestamos', \App\Http\Controllers\PrestamoController::class);
 Route::patch('/prestamos/{idPrestamo}/copias/{idCopia}', [PrestamoController::class, 'updateCopia'])->name('prestamos.updateCopia');
 Route::get('/prestamos/{id}/comentario', [PrestamoController::class, 'comentario'])->name('prestamos.comentario');
