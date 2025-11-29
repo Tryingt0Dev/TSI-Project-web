@@ -14,7 +14,7 @@
     </div>
 
     {{-- filtros existentes (fecha_from, fecha_to, rut, nombre_alumno, per_page) --}}
-    <form class="row g-2 mb-3" method="GET" action="{{ route('prestamos.index') }}">
+    <form class="row g-3 mb-4" method="GET" action="{{ route('prestamos.index') }}">
         <div class="col-auto">
             <input type="date" class="form-control" name="fecha_from" value="{{ request('fecha_from') }}" placeholder="Desde">
         </div>
@@ -37,6 +37,11 @@
         <div class="col-auto">
             <button class="btn btn-primary" type="submit">Filtrar</button>
         </div>
+        <div class="col-auto">
+            <a href="{{ route('prestamos.create') }}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Nuevo préstamo
+            </a>
+        </div>
     </form>
 
     <div class="card">
@@ -47,7 +52,7 @@
                         <th>#</th>
                         <th>Alumno</th>
                         <th>Usuario</th>
-                        <th>Copias (pivot estado)</th>
+                        <th>Copias </th>
                         <th>Fecha préstamo</th>
                         <th>Fecha prevista</th>
                         <th>Estado</th>

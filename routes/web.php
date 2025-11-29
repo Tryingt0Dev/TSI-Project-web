@@ -10,6 +10,7 @@ use App\Http\Controllers\CopiaController;
 use App\Http\Middleware\CheckRole;
 use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\GeneroController;
+use App\Http\Controllers\ReportesController;
 use App\Models\Libro;
 
 Route::get('/', function () {
@@ -68,4 +69,10 @@ Route::post('/prestamos/{id}/finalizar', [PrestamoController::class, 'finalizar'
 //alumnos
 Route::middleware(['auth'])->group(function () {
     Route::resource('alumnos', AlumnoController::class)->except(['create','store','show']);
+});
+
+// reportes
+Route::middleware('auth')->group(function () {
+    Route::get('/informes', [ReportesController::class, 'index'])->name('informes.index');
+    Route::post('/informes/generar', [ReportesController::class, 'generar'])->name('informes.generar');
 });

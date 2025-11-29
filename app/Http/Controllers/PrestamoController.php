@@ -81,21 +81,27 @@ class PrestamoController extends Controller
             'copias' => 'required|array|min:1',
             'copias.*' => 'required|integer|exists:copia,id_copia',
             'fecha_devolucion_prevista' => 'nullable|date|after_or_equal:today',
+        ], [
+            'copias.required' => 'Debes seleccionar al menos una copia.',
+            'copias.array' => 'Formato de copias inválido.',
+            'copias.*.exists' => 'Alguna copia seleccionada no existe.',
         ]);
 
-        // convertir a ints
+        // normalizar ids (int)
         $copiasIds = array_map('intval', $validated['copias']);
-        $copiasModels = Copia::whereIn('id_copia', $copiasIds)->lockForUpdate()->get();
+
+        // bloquear y traer modelos
+        $copiasModels = \App\Models\Copia::whereIn('id_copia', $copiasIds)->lockForUpdate()->get();
 
         if ($copiasModels->count() !== count($copiasIds)) {
-            throw ValidationException::withMessages(['copias' => 'Alguna copia no existe.']);
+            return back()->withErrors(['copias' => 'Alguna copia seleccionada no existe o fue eliminada.'])->withInput();
         }
 
-        // comprobar disponibilidad: comparar en minúscula
+        // comprobar disponibilidad (normalizamos estado)
         foreach ($copiasModels as $c) {
-            $estado = strtolower(trim((string) ($c->estado ?? '')));
+            $estado = trim(strtolower((string)($c->estado ?? '')));
             if ($estado === 'prestado') {
-                throw ValidationException::withMessages(['copias' => "La copia {$c->id_copia} no está disponible."]);
+                return back()->withErrors(['copias' => "La copia {$c->id_copia} no está disponible."])->withInput();
             }
         }
 
@@ -108,20 +114,21 @@ class PrestamoController extends Controller
                 'estado' => 'activo',
             ]);
 
-            $attach = [];
-            foreach ($copiasModels as $c) {
-                // marcar la copia como prestado (normalizado en minúscula)
-                $c->estado = 'prestado';
-                $c->save();
-                // actualizar pivote con estados en minúscula
-                $attach[$c->id_copia] = [
-                    'estado' => 'prestado',
-                    'fecha_prestamo' => now(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+            $ids = $copiasModels->pluck('id_copia')->map(fn($v) => (int)$v)->toArray();
+
+            // usa el helper del modelo para adjuntar y marcar copias como 'prestado'
+            if (method_exists($prestamo, 'attachCopiasConEstado')) {
+                $prestamo->attachCopiasConEstado($ids);
+            } else {
+                // fallback: attach manual
+                $attach = [];
+                foreach ($copiasModels as $c) {
+                    $c->estado = 'prestado';
+                    $c->save();
+                    $attach[$c->id_copia] = ['estado' => 'prestado', 'fecha_prestamo' => now()];
+                }
+                $prestamo->copias()->attach($attach);
             }
-            $prestamo->copias()->attach($attach);
         });
 
         return redirect()->route('prestamos.index')->with('success', 'Préstamo registrado correctamente.');

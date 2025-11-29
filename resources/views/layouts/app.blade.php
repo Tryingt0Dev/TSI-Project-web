@@ -65,6 +65,9 @@
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('usuarios') ? 'active-nav' : '' }}" href="{{ route('usuarios.index') }}">Usuarios</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->is('informes*') ? 'active-nav' : '' }}" href="{{ route('informes.index') }}">Informes</a>
+                        </li>
                     @endif
                 @endauth
 

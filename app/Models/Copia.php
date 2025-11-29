@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Libro;
 use App\Models\Ubicacion;
+use App\Models\Prestamo; // <-- añadido, mejora claridad
 
 class Copia extends Model
 {
@@ -14,20 +15,18 @@ class Copia extends Model
     protected $keyType = 'int';
     protected $fillable = ['id_libro_interno','estado','id_ubicacion'];
 
-    // Relaciones
-
-    // Copia pertenece a un libro
+    // Relación: copia pertenece a un libro
     public function libro()
     {
         return $this->belongsTo(Libro::class, 'id_libro_interno', 'id_libro_interno');
     }
 
-    // Copia pertenece a una ubicacion (esta es la que faltaba)
+    // Copia pertenece a una ubicacion
     public function ubicacion()
     {
-        // Si tu tabla ubicaciones tiene PK 'id' y la FK en copia es 'id_ubicacion'
         return $this->belongsTo(Ubicacion::class, 'id_ubicacion', 'id_ubicacion');
     }
+
     public function prestamos()
     {
         return $this->belongsToMany(
@@ -35,11 +34,11 @@ class Copia extends Model
             'copias_prestamos',
             'id_copia',
             'id_prestamo'
-        )->withPivot(['estado','fecha_prestamo'])
+        )->withPivot(['estado','fecha_prestamo','fecha_devolucion_real'])
          ->withTimestamps();
     }
 
-    // Observers para recalcular stock (mantengo tu lógica)
+    // Observers para recalcular stock cuando se crean/actualizan/eliminan copias
     protected static function booted()
     {
         static::created(function (Copia $copia) {
