@@ -81,4 +81,10 @@ class UsuarioController extends Controller
         User::findOrFail($id)->delete();
         return redirect()->route('usuarios.index')->with('success', 'Usuario eliminado');
     }
+    public function perfil()
+    {
+        $user = auth()->user();
+        return view('usuarios.perfil', compact('user'));
+    }
+
 }

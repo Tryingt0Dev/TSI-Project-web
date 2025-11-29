@@ -30,6 +30,8 @@ Route::get('/home', function () {
 Route::get('/home', [LibroController::class, 'catalogo'])
     ->name('home')
     ->middleware('auth');
+Route::middleware('auth')->get('/perfil', [UsuarioController::class, 'perfil'])
+    ->name('usuario.perfil');
 // Libros
 Route::resource('libros', LibroController::class);
 Route::get('/buscar-libro', [LibroController::class, 'buscarLibro'])->name('buscar-libro');
