@@ -89,8 +89,6 @@
                                 <a href="{{ route('prestamos.detalle', $p->getKey()) }}" class="btn btn-sm btn-outline-secondary" title="Ver detalle">
                                     <i class="bi bi-eye"></i>
                                 </a>
-
-                                {{-- Editar (resource edit). Deshabilitado si ya está devuelto --}}
                                 
 
                                 {{-- Marcar devuelto (solo si no está devuelto) --}}
