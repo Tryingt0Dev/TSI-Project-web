@@ -31,6 +31,19 @@ class PrestamoController extends Controller
         return view('prestamos.index', compact('prestamos'));
     }
 
+    public function detalle($id)
+    {
+        $prestamo = Prestamo::with(['alumno', 'copias.libro'])->findOrFail($id);
+        return view('prestamos.detalle', compact('prestamo'));
+    }
+
+    public function show($id)
+    {
+        $prestamo = Prestamo::with(['alumno', 'copias.libro'])->findOrFail($id);
+        if ($prestamo->estado === 'devuelto') { return redirect()->route('prestamos.index')->with('error', 'Este préstamo ya fue devuelto y no puede abrirse para edición.');}
+        return view('prestamos.show', compact('prestamo'));
+    }
+
     public function create() // Mostrar formulario de creación.
     {
         $copias = Copia::with('libro')
@@ -138,6 +151,20 @@ class PrestamoController extends Controller
 
     return redirect()->route('prestamos.index')->with('success', 'Préstamo devuelto con comentario registrado');
     }
+
+    public function comentario($id)
+    {
+        $prestamo = Prestamo::with(['alumno', 'copias.libro'])->findOrFail($id);
+
+        // Verifica que todas las copias estén devueltas
+        if (!$this->todasDevueltas($prestamo->id_prestamo)) {
+            return redirect()->route('prestamos.show', $id)
+                ->with('error', 'No puedes finalizar el préstamo hasta que todas las copias estén devueltas.');
+        }
+
+        return view('prestamos.comentario', compact('prestamo'));
+    }
+
 
     public function destroy($id)
     {

@@ -24,6 +24,12 @@ class Prestamo extends Model
         'rut_alumno',
     ];
 
+    protected $casts = [
+        'fecha_prestamo' => 'datetime',
+        'fecha_devolucion_prevista' => 'datetime',
+        'fecha_devolucion_real' => 'datetime',
+    ];
+
     public function copias()
     {
         return $this->belongsToMany(

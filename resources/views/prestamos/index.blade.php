@@ -120,12 +120,14 @@
 
                                 <td class="text-end">
                                     <div class="d-inline-flex align-items-center">
-                                        <a href="{{ route('prestamos.show', $prestamo->id_prestamo) }}" class="btn btn-sm btn-outline-secondary me-1" title="Ver">
+                                        <a href="{{ route('prestamos.detalle', $prestamo->id_prestamo) }}" class="btn btn-sm btn-outline-secondary me-1" title="Ver">
                                             <i class="bi bi-eye"></i>
                                         </a>
 
-                                        <a href="{{ route('prestamos.edit', $prestamo->id_prestamo) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                                            <i class="bi bi-pencil-square"></i>
+                                        <a href="{{ route('prestamos.show', $prestamo->id_prestamo) }}" 
+                                            class="btn btn-sm btn-outline-warning me-1" 
+                                            title="Actualizar copias">
+                                            <i class="bi bi-journal-check"></i>
                                         </a>
 
                                         <form action="{{ route('prestamos.destroy', $prestamo->id_prestamo) }}" method="POST" class="d-inline-block ms-1"
