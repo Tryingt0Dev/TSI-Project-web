@@ -6,7 +6,7 @@
 
 @section('content')
 <div class="container py-4">
-
+    
     {{-- Small inline styles to keep card footer pinned to bottom and clamp text --}}
     <style>
       /* Ensure card body is column-flex so footer can be pushed to bottom */
@@ -78,7 +78,10 @@
             </form>
         </div>
     </div>
-
+    {{-- Paginación --}}
+    <div class="mt-7 d-flex justify-content-center  ">
+        {{ $libros->withQueryString()->links('pagination::bootstrap-5') }}
+    </div>
     {{-- Grid de libros --}}
     <div class="row row-cols-1 row-cols-md-4 g-4">
         @forelse($libros as $libro)
@@ -263,8 +266,8 @@
     @endpush
 
     {{-- Paginación --}}
-    <div class="d-flex justify-content-center mt-4">
-        {{ $libros->withQueryString()->links() }}
+    <div class="mt-7 d-flex justify-content-center  ">
+        {{ $libros->withQueryString()->links('pagination::bootstrap-5') }}
     </div>
 </div>
 @endsection

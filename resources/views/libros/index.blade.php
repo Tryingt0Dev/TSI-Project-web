@@ -167,9 +167,10 @@
         </div>
     </div>
 
+    
     {{-- Paginación --}}
-    <div class="mt-3 d-flex justify-content-center">
-        {{ $libros->links() }}
+    <div class="mt-7 d-flex justify-content-center  ">
+        {{ $libros->links('pagination::bootstrap-5') }}
     </div>
 </div>
 

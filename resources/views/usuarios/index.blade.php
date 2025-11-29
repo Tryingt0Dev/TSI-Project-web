@@ -99,9 +99,8 @@
     </div>
 
     {{-- Paginación --}}
-    <div class="d-flex justify-content-center mt-4">
-        {{ $usuarios->links() }}
+    <div class="mt-7 d-flex justify-content-center  ">
+        {{ $usuarios->links('pagination::bootstrap-5') }}
     </div>
-
 </div>
 @endsection

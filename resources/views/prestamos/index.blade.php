@@ -157,8 +157,8 @@
     </div>
 
     {{-- Paginación (forzar mantener querystring) --}}
-    <div class="d-flex justify-content-center mt-4">
-        {{ $prestamos->withQueryString()->links() }}
+    <div class="mt-7 d-flex justify-content-center  ">
+        {{ $prestamos->withQueryString()->links('pagination::bootstrap-5') }}
     </div>
 
 </div>
