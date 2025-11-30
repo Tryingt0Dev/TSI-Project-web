@@ -34,25 +34,30 @@ Route::get('/home', [LibroController::class, 'catalogo'])
 Route::middleware('auth')->get('/perfil', [UsuarioController::class, 'perfil'])
     ->name('usuario.perfil');
 // Libros
-Route::resource('libros', LibroController::class);
-Route::get('/buscar-libro', [LibroController::class, 'buscarLibro'])->name('buscar-libro');
-Route::get('/libros/{libro}/detalle', [LibroController::class, 'detalle'])
-     ->name('libros.detalle');
+
+Route::middleware('auth')->group(function () {
+    Route::resource('libros', LibroController::class);
+    Route::get('/buscar-libro', [LibroController::class, 'buscarLibro'])->name('buscar-libro');
+    Route::get('/libros/{libro}/detalle', [LibroController::class, 'detalle'])->name('libros.detalle');
+});
+
 // copias disponibles
-Route::get('/api/libro/{id}/copias-disponibles', [LibroController::class, 'copiasDisponibles'])
-    ->name('api.libro.copias-disponibles')
-    ->middleware('auth');
-Route::get('libros/{id}/copias-disponibles', [LibroController::class, 'copiasDisponibles'])->name('libros.copias_disponibles');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/api/libro/{id}/copias-disponibles', [LibroController::class, 'copiasDisponibles'])->name('api.libro.copias-disponibles');
+    Route::get('libros/{id}/copias-disponibles', [LibroController::class, 'copiasDisponibles'])->name('libros.copias_disponibles');
+});
+
 // generos
-Route::post('/api/generos', [GeneroController::class, 'store'])
-    ->name('api.generos.store')
-    ->middleware('auth');
+
+Route::post('/api/generos', [GeneroController::class, 'store'])->name('api.generos.store')->middleware('auth');
 
 // Usuarios
 
 Route::middleware(['auth', CheckRole::class.':0'])->group(function () {
     Route::resource('usuarios', UsuarioController::class);
 });
+
 // Prestamos
 
 Route::middleware('auth')->group(function () {
@@ -63,13 +68,14 @@ Route::middleware('auth')->group(function () {
 });
 
 //alumnos
+
 Route::resource('alumnos', \App\Http\Controllers\AlumnoController::class)->middleware('auth');
 Route::middleware(['auth'])->group(function () {
     Route::resource('alumnos', AlumnoController::class)->except(['create','store','show']);
 });
 
-
 // reportes
+
 Route::middleware('auth')->group(function () {
     Route::get('/informes', [ReportesController::class, 'index'])->name('informes.index');
     Route::post('/informes/generar', [ReportesController::class, 'generar'])->name('informes.generar');
