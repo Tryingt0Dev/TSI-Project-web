@@ -42,8 +42,15 @@
                 <div class="col-md-2 d-grid">
                     <button class="btn btn-primary"><i class="bi bi-search me-1"></i> Filtrar</button>
                 </div>
+                <div class="col-md-2 d-grid">
+                    <button type="button" class="btn btn-success" onclick="window.location='{{ route('alumnos.create') }}'">
+                        <i class="bi bi-plus-lg me-1"></i> Crear Alumno
+                    </button>   
+                </div>
             </form>
+            
         </div>
+        
     </div>
 
     <!-- Lista -->

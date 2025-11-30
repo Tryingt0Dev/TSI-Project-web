@@ -347,19 +347,18 @@ class LibroController extends Controller
         //
         // --- NUEVAS COPIAS: procesar aquí si vienen datos en el formulario ---
         //
-        $created = 0;
-        // Determinar ubicación a usar: preferir id_ubicacion, si no id_ubicaciones (compatibilidad con tu vista)
-        $idUbic = $request->input('id_ubicacion', $request->input('id_ubicaciones', null));
+        $newCopiesCount = (int) $request->input('new_copies_count', 0);
+        $newCopiesCodesRaw = (string) $request->input('new_copies_codes', '');
+        $hasCodes = trim($newCopiesCodesRaw) !== '';
 
-        $codesRaw = $request->input('new_copies_codes', '');
-        $count = (int) $request->input('new_copies_count', 0);
-        $codes = [];
-        if (!empty(trim($codesRaw))) {
-            $lines = preg_split('/\r\n|\r|\n/', $codesRaw);
-            foreach ($lines as $ln) {
-                $c = trim($ln);
-                if ($c !== '') $codes[] = $c;
-            }
+        // Determinar campo de ubicacion enviado (compatibilidad con vistas antiguas)
+        $idUbicacionFromRequest = $request->input('id_ubicacion', $request->input('id_ubicaciones', null));
+
+        // Si el usuario pide crear copias (cantidad > 0 o códigos) la ubicación es obligatoria
+        if (($newCopiesCount > 0 || $hasCodes) && empty($idUbicacionFromRequest)) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['id_ubicacion' => 'La ubicación es obligatoria cuando se crean copias nuevas. Por favor selecciona una ubicación para las copias.']);
         }
 
         // **VALIDACION ADICIONAL**: si se intentan crear copias (count>0 o codes no vacío), id_ubic es obligatorio
@@ -500,36 +499,53 @@ class LibroController extends Controller
     /**
      * API: copias disponibles de un libro (JSON)
      */
-    public function copiasDisponibles($id)
+    public function copiasDisponibles($id, Request $request)
     {
         try {
             $libro = Libro::findOrFail($id);
 
-            $copias = Copia::where('id_libro_interno', $libro->id_libro_interno)
-                ->with('ubicacion')
-                ->where(function ($q) {
-                    $q->whereNull('estado')
-                      ->orWhereNotIn('estado', ['prestado', 'Prestada', 'Prestado']);
-                })
-                ->get();
+            $perPage = (int) $request->query('per_page', 10);
+            $page = (int) $request->query('page', 1);
+            $cacheKey = "libro_{$id}_copias_p_{$perPage}_pg_{$page}";
 
-            $out = $copias->map(function ($c) {
+            $result = \Cache::remember($cacheKey, now()->addMinutes(3), function () use ($libro, $perPage) {
+                $q = Copia::where('id_libro_interno', $libro->id_libro_interno)
+                    ->with('ubicacion')
+                    ->where(function ($q) {
+                        $q->whereNull('estado')
+                        ->orWhereNotIn('estado', ['prestado', 'Prestada', 'Prestado']);
+                    });
+
+                // usar paginate para evitar traer todo
+                return $q->orderBy('id_copia', 'desc')->paginate($perPage);
+            });
+
+            // transformar datos
+            $out = [
+                'data' => $result->items(),
+                'current_page' => $result->currentPage(),
+                'last_page' => $result->lastPage(),
+                'per_page' => $result->perPage(),
+                'total' => $result->total(),
+            ];
+
+            // normalizar ubicacion por item
+            $out['data'] = array_map(function ($c) {
                 $ubic = null;
-                if ($c->ubicacion) {
+                if (!empty($c['ubicacion'])) {
                     $parts = [];
-                    if (!empty($c->ubicacion->estante)) $parts[] = $c->ubicacion->estante;
-                    if (!empty($c->ubicacion->seccion)) $parts[] = $c->ubicacion->seccion;
-                    if (!empty($c->ubicacion->descripcion)) $parts[] = $c->ubicacion->descripcion;
+                    if (!empty($c['ubicacion']['estante'])) $parts[] = $c['ubicacion']['estante'];
+                    if (!empty($c['ubicacion']['seccion'])) $parts[] = $c['ubicacion']['seccion'];
+                    if (!empty($c['ubicacion']['descripcion'])) $parts[] = $c['ubicacion']['descripcion'];
                     $ubic = implode(' / ', $parts);
                 }
-
                 return [
-                    'id_copia' => $c->id_copia ?? null,
-                    'id_ubicacion' => $c->id_ubicacion ?? null,
-                    'estado' => $c->estado ?? null,
+                    'id_copia' => $c['id_copia'] ?? null,
+                    'id_ubicacion' => $c['id_ubicacion'] ?? null,
+                    'estado' => $c['estado'] ?? null,
                     'ubicacion' => $ubic,
                 ];
-            });
+            }, $out['data']);
 
             return response()->json($out, 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -542,4 +558,5 @@ class LibroController extends Controller
             return response()->json(['message' => 'Error interno al obtener copias'], 500);
         }
     }
+
 }

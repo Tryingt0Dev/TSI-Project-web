@@ -48,74 +48,21 @@
         </div>
     </div>
 
-    {{-- Copias (si existen) --}}
+    {{-- Copias (cargadas por AJAX) --}}
     <div class="card shadow-sm mb-4">
-        <div class="card-header">
-            <strong>Copias ({{ $libro->copias->count() }})</strong>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Copias</strong>
+            <small id="copias-count" class="text-muted">{{ $libro->copias->count() }}</small>
         </div>
 
-        <div class="card-body p-0">
-            @if($libro->copias->isEmpty())
-                <div class="p-3 text-muted">No hay copias registradas para este libro.</div>
-            @else
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>ID Copia</th>
-                                <th>Estado</th>
-                                <th>Ubicación</th>
-                                <th class="text-end">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($libro->copias as $copia)
-                                <tr id="copia-row-{{ $copia->id_copia ?? $copia->id }}">
-                                    <td class="align-middle">{{ $copia->id_copia ?? $copia->id }}</td>
-
-                                    <td class="align-middle">
-                                        @php $estadoBadge = $copia->estado ?? null; @endphp
-
-                                        @if(!$estadoBadge)
-                                            <span class="badge bg-success">Disponible</span>
-                                        @elseif($estadoBadge === 'prestado')
-                                            <span class="badge bg-warning text-dark">Prestado</span>
-                                        @elseif(in_array(strtolower($estadoBadge), ['perdido','dañado','roto']))
-                                            <span class="badge bg-danger">{{ $estadoBadge }}</span>
-                                        @else
-                                            <span class="badge bg-secondary text-white">{{ $estadoBadge }}</span>
-                                        @endif
-                                    </td>
-
-                                    <td class="align-middle">
-                                        @if($copia->ubicacion)
-                                            Estante: <strong>{{ $copia->ubicacion->estante ?? '-' }}</strong>
-                                            / Sección: <strong>{{ $copia->ubicacion->seccion ?? '-' }}</strong>
-                                        @else
-                                            <span class="text-muted">Sin ubicación</span>
-                                        @endif
-                                    </td>
-
-                                    <td class="text-end align-middle">
-                                        {{-- Editar (abre modal) --}}
-                                        <button class="btn btn-sm btn-outline-primary btn-edit-copia"
-                                            data-id="{{ $copia->id_copia ?? $copia->id }}"
-                                            data-update-url="{{ route('copias.update', $copia->id_copia ?? $copia->id) }}"
-                                            data-estado="{{ $copia->estado ?? '' }}"
-                                            data-id_ubicacion="{{ $copia->id_ubicacion ?? '' }}"
-                                            data-estante="{{ $copia->ubicacion->estante ?? '' }}"
-                                            data-seccion="{{ $copia->ubicacion->seccion ?? '' }}"
-                                            title="Editar copia">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                        
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+        <div class="card-body p-3">
+            <div id="copias-container">
+                <div id="copias-list" class="mb-3">
+                    <div class="text-center text-muted py-4">Cargando copias…</div>
                 </div>
-            @endif
+
+                <nav id="copias-pagination" aria-label="Paginación de copias"></nav>
+            </div>
         </div>
     </div>
 
@@ -125,7 +72,7 @@
 
 </div>
 
-{{-- Modal para editar copia (actualizado) --}}
+{{-- Modal para editar copia (dinámico) --}}
 <div class="modal fade" id="editCopiaModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form id="formEditCopia" method="POST">
@@ -135,7 +82,6 @@
         <div class="modal-header d-flex align-items-center justify-content-between">
           <h5 class="modal-title">Editar copia</h5>
 
-          {{-- Botones para cambiar modo --}}
           <div class="btn-group" role="group" aria-label="Modo ubicacion/estado">
             <button type="button" class="btn btn-sm btn-outline-primary" id="btnModoExistente">Seleccionar existente</button>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btnModoCrear">Crear / Editar</button>
@@ -147,13 +93,11 @@
         <div class="modal-body">
             <input type="hidden" id="copia_id" name="copia_id">
 
-            {{-- Sección común: Estado (modo existente) --}}
             <div id="seccionExistente" class="mb-3">
                 <label class="form-label">Estado (seleccionar existente)</label>
                 <select name="estado" id="estado" class="form-select">
                     <option value="">Disponible</option>
                     <option value="prestado">Prestado</option>
-                    <!-- Si pasas $estados desde controller puedes poblar dinámicamente -->
                     @if(isset($estados) && $estados->count())
                         @foreach($estados as $e)
                             <option value="{{ $e->nombre }}">{{ $e->nombre }}</option>
@@ -162,14 +106,12 @@
                 </select>
             </div>
 
-            {{-- Sección para crear/editar estado (visible en modo "Crear") --}}
             <div id="seccionCrearEstado" class="mb-3" style="display:none;">
                 <label class="form-label">Crear/Editar Estado</label>
                 <input type="text" id="nuevo_estado" name="nuevo_estado" class="form-control" placeholder="Ej: Reparación, Perdido...">
                 <div class="form-text">Si completas este campo, se usará como estado de la copia.</div>
             </div>
 
-            {{-- Ubicación existente --}}
             <div id="seccionUbicExistente" class="mb-3">
                 <label class="form-label">Ubicación (seleccionar existente)</label>
                 <select name="id_ubicacion" id="id_ubicacion" class="form-select">
@@ -182,7 +124,6 @@
                 </select>
             </div>
 
-            {{-- Crear / Editar ubicación --}}
             <div id="seccionCrearUbic" style="display:none;">
                 <div class="mb-3">
                     <label class="form-label">Estante (crear/editar)</label>
@@ -213,12 +154,18 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const editButtons = document.querySelectorAll('.btn-edit-copia');
+    // Config
+    const libroId = {{ json_encode($libro->id_libro_interno) }};
+    const perPage = 10;
+    const copiasListEl = document.getElementById('copias-list');
+    const paginationEl = document.getElementById('copias-pagination');
+    const copiasCountEl = document.getElementById('copias-count');
+
+    // Modal elements
     const modalEl = document.getElementById('editCopiaModal');
     const bsModal = new bootstrap.Modal(modalEl);
     const form = document.getElementById('formEditCopia');
 
-    // Secciones para toggle
     const seccionExistente = document.getElementById('seccionExistente');
     const seccionCrearEstado = document.getElementById('seccionCrearEstado');
     const seccionUbicExistente = document.getElementById('seccionUbicExistente');
@@ -227,16 +174,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnModoExistente = document.getElementById('btnModoExistente');
     const btnModoCrear = document.getElementById('btnModoCrear');
 
-    // base url fallback (no es crítico si usas data-update-url)
-    const baseUrl = "{{ url('copias') }}";
+    const baseCopiaUrl = "{{ url('copias') }}"; // /copias
 
-    // Funciones para alternar vista
     function activarModoExistente() {
         seccionExistente.style.display = '';
         seccionUbicExistente.style.display = '';
         seccionCrearEstado.style.display = 'none';
         seccionCrearUbic.style.display = 'none';
-
         btnModoExistente.classList.add('active');
         btnModoCrear.classList.remove('active');
     }
@@ -245,43 +189,166 @@ document.addEventListener('DOMContentLoaded', function () {
         seccionUbicExistente.style.display = 'none';
         seccionCrearEstado.style.display = '';
         seccionCrearUbic.style.display = '';
-
         btnModoCrear.classList.add('active');
         btnModoExistente.classList.remove('active');
     }
 
-    // Inicialmente modo existente
+    // Inicial
     activarModoExistente();
-
     btnModoExistente.addEventListener('click', activarModoExistente);
     btnModoCrear.addEventListener('click', activarModoCrear);
 
-    editButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const id = btn.dataset.id;
-            const estado = btn.dataset.estado || '';
-            const id_ubicacion = btn.dataset.id_ubicacion || '';
-            const estante = btn.dataset.estante || '';
-            const seccion = btn.dataset.seccion || '';
+    // Load copias (AJAX paginado)
+    async function loadCopias(page = 1) {
+        copiasListEl.innerHTML = '<div class="text-center text-muted py-4">Cargando copias…</div>';
+        paginationEl.innerHTML = '';
 
-            document.getElementById('copia_id').value = id;
-            document.getElementById('estado').value = estado;
-            document.getElementById('id_ubicacion').value = id_ubicacion;
-            document.getElementById('estante').value = estante;
-            document.getElementById('seccion').value = seccion;
-            document.getElementById('nuevo_estado').value = '';
+        try {
+            const res = await fetch(`/libros/${encodeURIComponent(libroId)}/copias-disponibles?page=${page}&per_page=${perPage}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!res.ok) throw new Error('Error al cargar copias');
+            const json = await res.json();
 
-            // set action url dinámicamente (usa data-update-url si existe)
-            form.action = btn.dataset.updateUrl || (baseUrl + '/' + encodeURIComponent(id));
+            renderCopias(json);
+        } catch (err) {
+            console.error(err);
+            copiasListEl.innerHTML = '<div class="text-danger py-3">Error al cargar copias. Revisa logs.</div>';
+        }
+    }
 
-            // mostrar modal en modo existente por defecto
-            activarModoExistente();
+    // Render tabla y paginación
+    function renderCopias(payload) {
+        const data = payload.data || [];
+        const current = payload.current_page || 1;
+        const last = payload.last_page || 1;
+        const total = payload.total || 0;
 
-            bsModal.show();
+        copiasCountEl.textContent = total;
+
+        if (data.length === 0) {
+            copiasListEl.innerHTML = '<div class="text-muted py-3">No hay copias disponibles.</div>';
+            paginationEl.innerHTML = '';
+            return;
+        }
+
+        // Construir tabla
+        const table = document.createElement('table');
+        table.className = 'table table-hover mb-0';
+        table.innerHTML = `
+            <thead class="table-light">
+                <tr>
+                    <th>ID Copia</th>
+                    <th>Estado</th>
+                    <th>Ubicación</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+        `;
+        const tbody = document.createElement('tbody');
+
+        data.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.id = 'copia-row-' + (c.id_copia ?? '');
+            const estado = c.estado ?? '';
+            let estadoHtml = '';
+            if (!estado) {
+                estadoHtml = '<span class="badge bg-success">Disponible</span>';
+            } else if (estado === 'prestado') {
+                estadoHtml = '<span class="badge bg-warning text-dark">Prestado</span>';
+            } else if (['perdido','dañado','roto'].includes(estado.toLowerCase())) {
+                estadoHtml = `<span class="badge bg-danger">${estado}</span>`;
+            } else {
+                estadoHtml = `<span class="badge bg-secondary text-white">${estado}</span>`;
+            }
+
+            const ubicacionText = c.ubicacion ? ( (c.ubicacion.estante ?? '-') + ' / ' + (c.ubicacion.seccion ?? '-') ) : '<span class="text-muted">Sin ubicación</span>';
+
+            tr.innerHTML = `
+                <td class="align-middle">${c.id_copia ?? ''}</td>
+                <td class="align-middle estado-cell">${estadoHtml}</td>
+                <td class="align-middle ubic-cell">${c.ubicacion ? `Estante: <strong>${c.ubicacion.estante ?? '-'}</strong> / Sección: <strong>${c.ubicacion.seccion ?? '-'}</strong>` : '<span class="text-muted">Sin ubicación</span>'}</td>
+                <td class="text-end align-middle">
+                    <button class="btn btn-sm btn-outline-primary btn-edit-copia"
+                        data-id="${c.id_copia ?? ''}"
+                        data-update-url="${c.update_url ?? (baseCopiaUrl + '/' + encodeURIComponent(c.id_copia ?? ''))}"
+                        data-estado="${c.estado ?? ''}"
+                        data-id_ubicacion="${c.id_ubicacion ?? ''}"
+                        data-estante="${c.ubicacion ? (c.ubicacion.estante ?? '') : ''}"
+                        data-seccion="${c.ubicacion ? (c.ubicacion.seccion ?? '') : ''}"
+                        title="Editar copia">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
         });
-    });
 
-    // submit por fetch (AJAX) con CSRF token
+        table.appendChild(tbody);
+        copiasListEl.innerHTML = '';
+        copiasListEl.appendChild(table);
+
+        // Paginación
+        paginationEl.innerHTML = '';
+        const ul = document.createElement('ul');
+        ul.className = 'pagination justify-content-center mt-3';
+
+        const createPageItem = (p, label = null, active = false, disabled = false) => {
+            const li = document.createElement('li');
+            li.className = 'page-item' + (active ? ' active' : '') + (disabled ? ' disabled' : '');
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.innerText = label || p;
+            a.addEventListener('click', function (e) { e.preventDefault(); if (!disabled) loadCopias(p); });
+            li.appendChild(a);
+            return li;
+        };
+
+        // Prev
+        ul.appendChild(createPageItem(Math.max(1, current - 1), '«', false, current === 1));
+
+        // simple range: muestra hasta 7 páginas centradas
+        const start = Math.max(1, current - 3);
+        const end = Math.min(last, current + 3);
+        for (let p = start; p <= end; p++) {
+            ul.appendChild(createPageItem(p, null, p === current));
+        }
+
+        // Next
+        ul.appendChild(createPageItem(Math.min(last, current + 1), '»', false, current === last));
+
+        paginationEl.appendChild(ul);
+
+        // Asociar listeners a botones editar recién renderizados
+        copiasListEl.querySelectorAll('.btn-edit-copia').forEach(btn => {
+            btn.addEventListener('click', openEditModalFromButton);
+        });
+    }
+
+    // Abrir modal y rellenar campos
+    function openEditModalFromButton(evt) {
+        const btn = evt.currentTarget;
+        const id = btn.dataset.id || '';
+        const estado = btn.dataset.estado || '';
+        const id_ubicacion = btn.dataset.id_ubicacion || '';
+        const estante = btn.dataset.estante || '';
+        const seccion = btn.dataset.seccion || '';
+
+        document.getElementById('copia_id').value = id;
+        document.getElementById('estado').value = estado;
+        document.getElementById('id_ubicacion').value = id_ubicacion;
+        document.getElementById('estante').value = estante;
+        document.getElementById('seccion').value = seccion;
+        document.getElementById('nuevo_estado').value = '';
+
+        form.action = btn.dataset.updateUrl || (baseCopiaUrl + '/' + encodeURIComponent(id));
+
+        activarModoExistente();
+        bsModal.show();
+    }
+
+    // submit del modal (AJAX)
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
         const copiaId = document.getElementById('copia_id').value;
@@ -290,10 +357,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const token = tokenMeta ? tokenMeta.getAttribute('content') : '';
 
         const formData = new FormData(form);
-        // Aseguramos _method=PATCH
         formData.set('_method', 'PATCH');
 
-        // Estados: priorizamos nuevo_estado si está el modo Crear o si el campo tiene texto
+        // Priorizar nuevo_estado si está en modo crear
         if (seccionCrearEstado.style.display !== 'none') {
             const nuevoEstado = document.getElementById('nuevo_estado').value.trim();
             if (nuevoEstado) {
@@ -301,31 +367,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 formData.set('estado', nuevoEstado);
             }
         } else {
-            // en modo existente: enviamos el select (puede estar vacío => disponible)
             const estadoSel = document.getElementById('estado').value;
             formData.set('estado', estadoSel);
         }
 
-        // Ubicación: si estamos creando una nueva ubicación, indicamos crearla
+        // Ubicación: crear o seleccionar
         if (seccionCrearUbic.style.display !== 'none') {
             const est = document.getElementById('estante').value.trim();
             const sec = document.getElementById('seccion').value.trim();
             if (est || sec) {
-                // mandamos id_ubicacion vacio para forzar creación en backend
                 formData.set('id_ubicacion', '');
                 formData.set('_crear_ubicacion', '1');
                 formData.set('estante', est);
                 formData.set('seccion', sec);
             }
         } else {
-            // en modo existente: enviamos el id seleccionado (puede estar vacío)
             const idU = document.getElementById('id_ubicacion').value;
             formData.set('id_ubicacion', idU);
         }
 
         try {
             const res = await fetch(action, {
-                method: 'POST', // Laravel acepta POST + _method=PATCH
+                method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': token,
                     'Accept': 'application/json'
@@ -335,16 +398,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const json = await res.json();
 
-            if (!res.ok) throw new Error(json.message || 'Error en servidor');
+            if (!res.ok) throw new Error(json.message || 'Error al actualizar');
 
-            // actualizar fila UI: estado y ubicacion
+            // actualizar fila si existe
             const row = document.getElementById('copia-row-' + copiaId);
             if (row) {
-                const ubic = json.copia.ubicacion ?? null;
-
-                // actualizar estado badge (columna 2) usando valor devuelto por backend
-                const estadoCell = row.children[1];
-                const estadoVal = json.copia.estado || '';
+                // estado
+                const estadoVal = (json.copia && json.copia.estado) || formData.get('estado') || '';
+                const estadoCell = row.querySelector('.estado-cell');
                 let badgeHtml = '';
                 if (!estadoVal) {
                     badgeHtml = '<span class="badge bg-success">Disponible</span>';
@@ -355,30 +416,32 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     badgeHtml = `<span class="badge bg-secondary text-white">${estadoVal}</span>`;
                 }
-                estadoCell.innerHTML = badgeHtml;
+                if (estadoCell) estadoCell.innerHTML = badgeHtml;
 
-                // actualizar ubicacion cell (columna 3)
-                const ubicCell = row.children[2];
+                // ubicacion
+                const ubicCell = row.querySelector('.ubic-cell');
+                const ubic = (json.copia && json.copia.ubicacion) || null;
                 if (ubic) {
                     ubicCell.innerHTML = `Estante: <strong>${ubic.estante ?? '-'}</strong> / Sección: <strong>${ubic.seccion ?? '-'}</strong>`;
                 } else {
                     ubicCell.innerHTML = '<span class="text-muted">Sin ubicación</span>';
                 }
 
-                // actualizar atributos data- del boton editar
+                // actualizar atributos del botón
                 const editBtn = row.querySelector('.btn-edit-copia');
-                if (editBtn) {
+                if (editBtn && json.copia) {
                     editBtn.dataset.estado = json.copia.estado ?? '';
                     editBtn.dataset.id_ubicacion = json.copia.id_ubicacion ?? '';
-                    editBtn.dataset.estante = ubic ? (ubic.estante ?? '') : '';
-                    editBtn.dataset.seccion = ubic ? (ubic.seccion ?? '') : '';
+                    editBtn.dataset.estante = (json.copia.ubicacion && json.copia.ubicacion.estante) ? json.copia.ubicacion.estante : '';
+                    editBtn.dataset.seccion = (json.copia.ubicacion && json.copia.ubicacion.seccion) ? json.copia.ubicacion.seccion : '';
+                    editBtn.dataset.updateUrl = editBtn.dataset.updateUrl || (baseCopiaUrl + '/' + encodeURIComponent(copiaId));
                 }
             }
 
-            // Si el modal estaba abierto, cerrarlo
+            // close modal
             bsModal.hide();
 
-            // toast sencillo de éxito
+            // toast success
             const toastHtml = `<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
                 <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
                   <div class="d-flex">
@@ -397,6 +460,9 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('Error al actualizar la copia: ' + (err.message || 'Comprueba la consola'));
         }
     });
+
+    // Carga inicial
+    loadCopias(1);
 });
 </script>
 @endpush

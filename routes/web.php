@@ -61,9 +61,11 @@ Route::middleware('auth')->group(function () {
 });
 
 //alumnos
+Route::resource('alumnos', \App\Http\Controllers\AlumnoController::class)->middleware('auth');
 Route::middleware(['auth'])->group(function () {
     Route::resource('alumnos', AlumnoController::class)->except(['create','store','show']);
 });
+
 
 // reportes
 Route::middleware('auth')->group(function () {

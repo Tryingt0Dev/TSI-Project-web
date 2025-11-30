@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title','Editar Alumno')
+@section('title','Crear Alumno')
 
 @section('content')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Editar Alumno</h2>
+        <h2>Crear Alumno</h2>
         <a href="{{ route('alumnos.index') }}" class="btn btn-light">Volver</a>
     </div>
 
@@ -21,49 +21,49 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('alumnos.update', $alumno->rut_alumno) }}" method="POST">
+            <form action="{{ route('alumnos.store') }}" method="POST">
                 @csrf
-                @method('PUT')
 
                 <div class="mb-3">
-                    <label class="form-label">RUT</label>
-                    <input class="form-control" value="{{ $alumno->rut_alumno }}" readonly>
-                    <div class="form-text">El RUT no puede cambiar desde aquí. Si necesitas cambiarlo, contáctame para hacerlo con seguridad.</div>
+                    <label class="form-label">RUT (puede incluir DV o no)</label>
+                    <input name="rut_alumno" value="{{ old('rut_alumno') }}" class="form-control" placeholder="Ej: 20991384-4 o 20991384" required>
+                    <div class="form-text">Puedes ingresar con o sin DV; si no lo pones se calculará automáticamente.</div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nombre</label>
-                        <input name="nombre_alumno" value="{{ old('nombre_alumno', $alumno->nombre_alumno) }}" class="form-control" required>
+                        <input name="nombre_alumno" value="{{ old('nombre_alumno') }}" class="form-control" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Apellido</label>
-                        <input name="apellido_alumno" value="{{ old('apellido_alumno', $alumno->apellido_alumno) }}" class="form-control" required>
+                        <input name="apellido_alumno" value="{{ old('apellido_alumno') }}" class="form-control" required>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Fecha de registro</label>
-                        <input type="date" name="fecha_registro" value="{{ old('fecha_registro', optional($alumno->fecha_registro)->format('Y-m-d')) }}" class="form-control">
+                        <input type="date" name="fecha_registro" value="{{ old('fecha_registro') }}" class="form-control">
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Atrasos</label>
-                        <input type="number" name="atrasos" min="0" value="{{ old('atrasos', $alumno->atrasos) }}" class="form-control" required>
+                        <input type="number" name="atrasos" min="0" value="{{ old('atrasos', 0) }}" class="form-control">
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Permiso préstamo</label>
                         <select name="permiso_prestamo" class="form-select">
-                            <option value="1" {{ old('permiso_prestamo', $alumno->permiso_prestamo) == 1 ? 'selected' : '' }}>Tiene permiso</option>
-                            <option value="0" {{ old('permiso_prestamo', $alumno->permiso_prestamo) == 0 ? 'selected' : '' }}>No tiene permiso</option>
+                            <option value="">(auto calculado)</option>
+                            <option value="1" {{ old('permiso_prestamo') === '1' ? 'selected' : '' }}>Tiene permiso</option>
+                            <option value="0" {{ old('permiso_prestamo') === '0' ? 'selected' : '' }}>No tiene permiso</option>
                         </select>
-                        <div class="form-text">Si lo dejas vacío, se calculará automáticamente al guardar.</div>
+                        <div class="form-text">Si dejas vacío, se calcula automáticamente según atrasos (<=3 permite).</div>
                     </div>
                 </div>
 
                 <div class="d-flex justify-content-end">
                     <a href="{{ route('alumnos.index') }}" class="btn btn-light me-2">Cancelar</a>
-                    <button class="btn btn-primary">Guardar cambios</button>
+                    <button class="btn btn-primary">Crear alumno</button>
                 </div>
             </form>
         </div>
