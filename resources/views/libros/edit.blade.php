@@ -126,24 +126,37 @@
                 </div>
 
                 {{-- Ubicacion/Agregar copias (se mantienen) --}}
-                <div class="col-md-6">
-                    <label class="form-label">Agregar copias</label>
-                    <input type="number" name="add_copias" class="form-control" min="0" value="{{ old('add_copias', 0) }}">
-                    <small class="text-muted">Se crearán N copias nuevas con estado <code>disponible</code>.</small>
-                </div>
+                {{-- Agregar nuevas copias al editar libro --}}
+                <div class="card mt-3 p-3">
+                    <h5>Agregar copias</h5>
 
-                <div class="col-md-6">
-                    <label class="form-label">Ubicación por defecto para nuevas copias</label>
-                    <select name="id_ubicaciones" class="form-select">
-                        <option value="">-- Seleccione (opcional) --</option>
-                        @foreach($ubicaciones as $u)
-                            <option value="{{ $u->id_ubicacion }}" {{ (old('id_ubicaciones') == $u->id_ubicacion) ? 'selected' : '' }}>
-                                {{ $u->estante }}{{ $u->seccion ? ' - ' . $u->seccion : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <div class="form-text">Si se dejan en blanco, las copias nuevas no tendrán ubicación asignada.</div>
+                    {{-- Opción A: cantidad de copias a crear --}}
+                    <div class="mb-3">
+                        <label for="new_copies_count" class="form-label">Agregar cantidad de copias</label>
+                        <input type="number" min="1" step="1" name="new_copies_count" id="new_copies_count" class="form-control" placeholder="Ej: 3">
+                        <div class="form-text">Introduce cuántas copias nuevas quieres crear (se crearán con estado 'disponible').</div>
+                    </div>
+                    {{-- Ubicación por defecto para nuevas copias --}}
+                     <div class="col-md-6">
+                            <label class="form-label">Ubicación por defecto para nuevas copias</label>
+                            <select name="id_ubicacion" class="form-select">
+                                <option value="">-- Seleccione (opcional) --</option>
+                                @foreach($ubicaciones as $u)
+                                    <option value="{{ $u->id_ubicacion }}" {{ (old('id_ubicacion', $libro->id_ubicacion ?? '') == $u->id_ubicacion) ? 'selected' : '' }}>
+                                        {{ $u->estante }}{{ $u->seccion ? ' - ' . $u->seccion : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Si se dejan en blanco, las copias nuevas no tendrán ubicación asignada.</div>
+
+                            {{-- Error inline específico para la ubicacion cuando se intenta crear copias sin indicar ubicación --}}
+                            @error('id_ubicacion')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                     </div>
                 </div>
+                
+                
 
                 <div class="col-12 d-flex gap-2 justify-content-end mt-2">
                     <a href="{{ route('libros.index') }}" class="btn btn-light">Cancelar</a>

@@ -292,6 +292,11 @@ class LibroController extends Controller
             'fecha_publicacion' => 'nullable|date',
             'stock_total' => 'sometimes|integer|min:0',
             'stock_disponible' => 'sometimes|integer|min:0',
+            // validaciones para nuevos campos de copias (si vienen)
+            'new_copies_count' => 'nullable|integer|min:0|max:500',
+            'new_copies_codes' => 'nullable|string|max:5000',
+            'id_ubicacion' => 'nullable|exists:ubicaciones,id_ubicacion',
+            'id_ubicaciones' => 'nullable|exists:ubicaciones,id_ubicacion',
         ]);
 
         // Autor
@@ -339,7 +344,100 @@ class LibroController extends Controller
             $libro->autores()->syncWithoutDetaching([$autorId]);
         }
 
-        $libro->recalcularStock();
+        //
+        // --- NUEVAS COPIAS: procesar aquí si vienen datos en el formulario ---
+        //
+        $created = 0;
+        // Determinar ubicación a usar: preferir id_ubicacion, si no id_ubicaciones (compatibilidad con tu vista)
+        $idUbic = $request->input('id_ubicacion', $request->input('id_ubicaciones', null));
+
+        $codesRaw = $request->input('new_copies_codes', '');
+        $count = (int) $request->input('new_copies_count', 0);
+        $codes = [];
+        if (!empty(trim($codesRaw))) {
+            $lines = preg_split('/\r\n|\r|\n/', $codesRaw);
+            foreach ($lines as $ln) {
+                $c = trim($ln);
+                if ($c !== '') $codes[] = $c;
+            }
+        }
+
+        // **VALIDACION ADICIONAL**: si se intentan crear copias (count>0 o codes no vacío), id_ubic es obligatorio
+        if (($count > 0 || !empty($codes)) && empty($idUbic)) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['id_ubicacion' => 'La ubicación es requerida al crear copias.']);
+        }
+
+        if ($count > 0 || !empty($codes)) {
+            DB::beginTransaction();
+            try {
+                // crear primero copias con códigos especificados
+                if (!empty($codes)) {
+                    foreach ($codes as $code) {
+                        $data = [
+                            'id_libro_interno' => $libro->id_libro_interno,
+                            'estado' => 'Disponible',
+                        ];
+                        // si existe la columna id_ubicacion en tabla copia, incluirla
+                        if (Schema::hasColumn('copia', 'id_ubicacion')) {
+                            $data['id_ubicacion'] = $idUbic !== null ? $idUbic : null;
+                        } elseif (Schema::hasColumn('copia', 'id_ubicaciones')) {
+                            $data['id_ubicaciones'] = $idUbic !== null ? $idUbic : null;
+                        }
+                        // si existe columna 'codigo' la añadimos (evita error si no existe)
+                        if (Schema::hasColumn('copia', 'codigo')) {
+                            $data['codigo'] = $code;
+                        }
+                        Copia::create($data);
+                        $created++;
+                    }
+                }
+
+                // crear copias por cantidad solicitada
+                for ($i = 0; $i < $count; $i++) {
+                    $data = [
+                        'id_libro_interno' => $libro->id_libro_interno,
+                        'estado' => 'Disponible',
+                    ];
+                    if (Schema::hasColumn('copia', 'id_ubicacion')) {
+                        $data['id_ubicacion'] = $idUbic !== null ? $idUbic : null;
+                    } elseif (Schema::hasColumn('copia', 'id_ubicaciones')) {
+                        $data['id_ubicaciones'] = $idUbic !== null ? $idUbic : null;
+                    }
+                    // si existe columna 'codigo' generamos un código único para la copia
+                    if (Schema::hasColumn('copia', 'codigo')) {
+                        $data['codigo'] = 'C-' . strtoupper(uniqid());
+                    }
+                    Copia::create($data);
+                    $created++;
+                }
+
+                DB::commit();
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                \Log::error('Error creando copias al actualizar libro: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString(),
+                    'libro_id' => $libro->id_libro_interno,
+                    'request' => $request->all(),
+                ]);
+                return redirect()->back()->withInput()->withErrors(['new_copies' => 'Error al crear copias: ' . $e->getMessage()]);
+            }
+        }
+
+        // Recalcular stock final
+        if (method_exists($libro, 'recalcularStock')) {
+            $libro->recalcularStock();
+        } else {
+            $libro->stock_total = $libro->copias()->count();
+            $libro->stock_disponible = $libro->copias()->where('estado', 'Disponible')->count();
+            $libro->save();
+        }
+
+        // flash informativo si se crearon copias
+        if ($created > 0) {
+            session()->flash('success', "Se crearon {$created} copias nuevas para este libro.");
+        }
 
         return redirect()->route('libros.index')->with('success', 'Libro actualizado correctamente');
     }
