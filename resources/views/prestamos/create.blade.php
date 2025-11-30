@@ -97,7 +97,6 @@
                    class="form-control"
                    min="{{ $hoy }}"
                    value="{{ old('fecha_devolucion_prevista') }}">
-            <div class="form-text">Opcional. Si no indicas, se dejará en blanco.</div>
             @error('fecha_devolucion_prevista')
                 <div class="text-danger small mt-1">{{ $message }}</div>
             @enderror
@@ -224,6 +223,28 @@ document.addEventListener('DOMContentLoaded', function () {
     // permitir enviar con Enter en select
     select.addEventListener('keyup', function (e){
         if (e.key === 'Enter') btnAdd.click();
+    });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btnConfirm = document.getElementById('btnConfirmSubmit');
+    const form = document.getElementById('formPrestamo');
+    const fechaInput = document.getElementById('fecha_devolucion_prevista');
+
+    btnConfirm.addEventListener('click', function (e) {
+        // Evitamos que el botón dispare envío automático
+        e.preventDefault();
+
+        // Validar fecha
+        if (!fechaInput.value) {
+            alert('Debe seleccionar una fecha límite de devolución antes de registrar el préstamo.');
+            fechaInput.focus();
+            return; // no envía el formulario
+        }
+
+        // Si pasa la validación, enviamos el formulario
+        form.submit();
     });
 });
 </script>
