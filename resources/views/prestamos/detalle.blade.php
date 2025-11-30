@@ -5,6 +5,7 @@
     <h3 class="mb-4">Detalle del préstamo #{{ $prestamo->id_prestamo }}</h3>
 
     {{-- Información del alumno --}}
+    <p><strong>Usuario Encargado:</strong> {{$prestamo->user->name }} {{$prestamo->user->apellido}}</p>
     <p><strong>Alumno:</strong> {{ $prestamo->alumno->nombre_alumno }} {{ $prestamo->alumno->apellido_alumno }}</p>
     <p><strong>Fecha préstamo:</strong> {{ $prestamo->fecha_prestamo->format('d/m/Y') }}</p>
     <p><strong>Fecha devolución prevista:</strong> {{ $prestamo->fecha_devolucion_prevista?->format('d/m/Y') ?? 'No definida' }}</p>

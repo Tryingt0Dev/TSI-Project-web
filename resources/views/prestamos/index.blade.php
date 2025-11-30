@@ -124,19 +124,19 @@
                                         {{-- Entregar Todas las copias --}}
 
                                         @if($prestamo->estado === 'activo')
-    <form action="{{ route('prestamos.entregarTodas', $prestamo->id_prestamo) }}" 
-          method="POST" class="d-inline-block me-2">
-        @csrf
-        @method('PUT')
-        <button type="submit" 
-                class="btn btn-sm btn-outline-success btn-xs"
-                onclick="return confirm('¿Confirmas que quieres marcar todas las copias como disponibles?');" 
-                title="Entregar todas las copias">
-            <i class="bi bi-check-circle"></i>
-            Entregar todas las copias
-        </button>
-    </form>
-@endif
+                                        <form action="{{ route('prestamos.entregarTodas', $prestamo->id_prestamo) }}" 
+                                            method="POST" class="d-inline-block me-2">
+                                            @csrf
+                                            @method('PUT')
+                                            <button type="submit" 
+                                                class="btn btn-sm btn-outline-success btn-xs"
+                                                onclick="return confirm('¿Confirmas que quieres marcar todas las copias como disponibles?');" 
+                                                title="Entregar todas las copias">
+                                                <i class="bi bi-check-circle"></i>
+                                                Entregar todas las copias
+                                            </button>
+                                        </form>
+                                        @endif
 
 
                                         {{-- Ver detalles y editar --}}
