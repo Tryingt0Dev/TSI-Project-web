@@ -49,11 +49,10 @@
     </div>
 
     {{-- Copias (cargadas por AJAX) --}}
-    
     <div class="card shadow-sm mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>Copias</strong>
-            <small id="copias-count" class="text-muted">{{ isset($copias) ? $copias->total() : ($libro->copias->count() ?? 0) }}</small>
+            <small id="copias-count" class="text-muted">{{ $libro->copias()->count() }}</small>
         </div>
 
         <div class="card-body p-3">
@@ -73,7 +72,7 @@
 
 </div>
 
-{{-- Modal para editar copia (dinámico) --}}
+{{-- Modal para editar copia --}}
 <div class="modal fade" id="editCopiaModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form id="formEditCopia" method="POST">
@@ -98,19 +97,20 @@
                 <label class="form-label">Estado (seleccionar existente)</label>
                 <select name="estado" id="estado" class="form-select">
                     <option value="">Disponible</option>
-                    <option value="prestado">Prestado</option>
-                    @if(isset($estados) && $estados->count())
-                        @foreach($estados as $e)
-                            <option value="{{ $e->nombre }}">{{ $e->nombre }}</option>
-                        @endforeach
-                    @endif
+                    @php
+                        $map = \App\Models\Copia::estadosMap();
+                        $permitted = \App\Models\Copia::estadosPermitidos();
+                    @endphp
+                    @foreach($permitted as $key)
+                        <option value="{{ $key }}">{{ $map[$key] ?? ucfirst($key) }}</option>
+                    @endforeach
                 </select>
             </div>
 
             <div id="seccionCrearEstado" class="mb-3" style="display:none;">
                 <label class="form-label">Crear/Editar Estado</label>
                 <input type="text" id="nuevo_estado" name="nuevo_estado" class="form-control" placeholder="Ej: Reparación, Perdido...">
-                <div class="form-text">Si completas este campo, se usará como estado de la copia.</div>
+                <div class="form-text">Si completas este campo, se usará como estado de la copia (se normalizará).</div>
             </div>
 
             <div id="seccionUbicExistente" class="mb-3">
@@ -155,14 +155,15 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Config
+    // Mapa clave DB => etiqueta (inyectado desde PHP)
+    const ESTADOS_MAP = {!! json_encode(\App\Models\Copia::estadosMap()) !!};
+
     const libroId = {{ json_encode($libro->id_libro_interno) }};
     const perPage = 10;
     const copiasListEl = document.getElementById('copias-list');
     const paginationEl = document.getElementById('copias-pagination');
     const copiasCountEl = document.getElementById('copias-count');
 
-    // Modal elements
     const modalEl = document.getElementById('editCopiaModal');
     const bsModal = new bootstrap.Modal(modalEl);
     const form = document.getElementById('formEditCopia');
@@ -175,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnModoExistente = document.getElementById('btnModoExistente');
     const btnModoCrear = document.getElementById('btnModoCrear');
 
-    const baseCopiaUrl = "{{ url('copias') }}"; // /copias
+    const baseCopiaUrl = "{{ url('copias') }}";
 
     function activarModoExistente() {
         seccionExistente.style.display = '';
@@ -194,7 +195,6 @@ document.addEventListener('DOMContentLoaded', function () {
         btnModoExistente.classList.remove('active');
     }
 
-    // Inicial
     activarModoExistente();
     btnModoExistente.addEventListener('click', activarModoExistente);
     btnModoCrear.addEventListener('click', activarModoCrear);
@@ -210,7 +210,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             if (!res.ok) throw new Error('Error al cargar copias');
             const json = await res.json();
-
             renderCopias(json);
         } catch (err) {
             console.error(err);
@@ -218,7 +217,27 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Render tabla y paginación
+    function badgeForEstado(key) {
+        // key es la clave DB-safe (ej. 'mal_estado', 'no_disponible', 'prestado', etc.)
+        switch ((key || '').toString()) {
+            case '':
+            case 'disponible':
+                return '<span class="badge bg-success">Disponible</span>';
+            case 'prestado':
+                return '<span class="badge bg-warning text-dark">Prestado</span>';
+            case 'mal_estado':
+                return '<span class="badge bg-secondary">Mal estado</span>';
+            case 'perdido':
+                return '<span class="badge bg-danger">Perdido</span>';
+            case 'no_disponible':
+                return '<span class="badge bg-dark">No disponible</span>';
+            default:
+                // si no lo conocemos, mostrar etiqueta del mapa o la raw
+                const label = ESTADOS_MAP[key] ?? (key ? key : 'Disponible');
+                return `<span class="badge bg-info text-dark">${label}</span>`;
+        }
+    }
+
     function renderCopias(payload) {
         const data = payload.data || [];
         const current = payload.current_page || 1;
@@ -233,7 +252,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Construir tabla
         const table = document.createElement('table');
         table.className = 'table table-hover mb-0';
         table.innerHTML = `
@@ -251,22 +269,14 @@ document.addEventListener('DOMContentLoaded', function () {
         data.forEach(c => {
             const tr = document.createElement('tr');
             tr.id = 'copia-row-' + (c.id_copia ?? '');
-            const estado = c.estado ?? '';
-            let estadoHtml = '';
-            if (!estado) {
-                estadoHtml = '<span class="badge bg-success">Disponible</span>';
-            } else if (estado === 'prestado') {
-                estadoHtml = '<span class="badge bg-warning text-dark">Prestado</span>';
-            } else if (['perdido','dañado','roto'].includes(estado.toLowerCase())) {
-                estadoHtml = `<span class="badge bg-danger">${estado}</span>`;
-            } else {
-                estadoHtml = `<span class="badge bg-secondary text-white">${estado}</span>`;
-            }
+            const estadoKey = (c.estado || '') + ''; // clave DB-safe esperada
+            const estadoHtml = badgeForEstado(estadoKey);
+            const ubicHtml = c.ubicacion ? `Estante: <strong>${c.ubicacion.estante ?? '-'}</strong> / Sección: <strong>${c.ubicacion.seccion ?? '-'}</strong>` : '<span class="text-muted">Sin ubicación</span>';
 
             tr.innerHTML = `
                 <td class="align-middle">${c.id_copia ?? ''}</td>
                 <td class="align-middle estado-cell">${estadoHtml}</td>
-                <td class="align-middle ubic-cell">${c.ubicacion ? `Estante: <strong>${c.ubicacion.estante ?? '-'}</strong> / Sección: <strong>${c.ubicacion.seccion ?? '-'}</strong>` : '<span class="text-muted">Sin ubicación</span>'}</td>
+                <td class="align-middle ubic-cell">${ubicHtml}</td>
                 <td class="text-end align-middle">
                     <button class="btn btn-sm btn-outline-primary btn-edit-copia"
                         data-id="${c.id_copia ?? ''}"
@@ -287,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function () {
         copiasListEl.innerHTML = '';
         copiasListEl.appendChild(table);
 
-        // Paginación
+        // Paginación (simple)
         paginationEl.innerHTML = '';
         const ul = document.createElement('ul');
         ul.className = 'pagination justify-content-center mt-3';
@@ -304,28 +314,20 @@ document.addEventListener('DOMContentLoaded', function () {
             return li;
         };
 
-        // Prev
         ul.appendChild(createPageItem(Math.max(1, current - 1), '«', false, current === 1));
-
-        // simple range: muestra hasta 7 páginas centradas
         const start = Math.max(1, current - 3);
         const end = Math.min(last, current + 3);
         for (let p = start; p <= end; p++) {
             ul.appendChild(createPageItem(p, null, p === current));
         }
-
-        // Next
         ul.appendChild(createPageItem(Math.min(last, current + 1), '»', false, current === last));
-
         paginationEl.appendChild(ul);
 
-        // Asociar listeners a botones editar recién renderizados
         copiasListEl.querySelectorAll('.btn-edit-copia').forEach(btn => {
             btn.addEventListener('click', openEditModalFromButton);
         });
     }
 
-    // Abrir modal y rellenar campos
     function openEditModalFromButton(evt) {
         const btn = evt.currentTarget;
         const id = btn.dataset.id || '';
@@ -347,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function () {
         bsModal.show();
     }
 
-    // submit del modal (AJAX)
+    // Envío AJAX del modal
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
         const copiaId = document.getElementById('copia_id').value;
@@ -358,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const formData = new FormData(form);
         formData.set('_method', 'PATCH');
 
-        // Priorizar nuevo_estado si está en modo crear
+        // Estado (prioriza nuevo_estado)
         if (seccionCrearEstado.style.display !== 'none') {
             const nuevoEstado = document.getElementById('nuevo_estado').value.trim();
             if (nuevoEstado) {
@@ -370,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function () {
             formData.set('estado', estadoSel);
         }
 
-        // Ubicación: crear o seleccionar
+        // Ubicación
         if (seccionCrearUbic.style.display !== 'none') {
             const est = document.getElementById('estante').value.trim();
             const sec = document.getElementById('seccion').value.trim();
@@ -396,28 +398,15 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             const json = await res.json();
-
             if (!res.ok) throw new Error(json.message || 'Error al actualizar');
 
-            // actualizar fila si existe
             const row = document.getElementById('copia-row-' + copiaId);
             if (row) {
-                // estado
                 const estadoVal = (json.copia && json.copia.estado) || formData.get('estado') || '';
+                const badgeHtml = badgeForEstado(estadoVal);
                 const estadoCell = row.querySelector('.estado-cell');
-                let badgeHtml = '';
-                if (!estadoVal) {
-                    badgeHtml = '<span class="badge bg-success">Disponible</span>';
-                } else if (estadoVal === 'prestado') {
-                    badgeHtml = '<span class="badge bg-warning text-dark">Prestado</span>';
-                } else if (['perdido','dañado','roto'].includes(estadoVal.toLowerCase())) {
-                    badgeHtml = `<span class="badge bg-danger">${estadoVal}</span>`;
-                } else {
-                    badgeHtml = `<span class="badge bg-secondary text-white">${estadoVal}</span>`;
-                }
                 if (estadoCell) estadoCell.innerHTML = badgeHtml;
 
-                // ubicacion
                 const ubicCell = row.querySelector('.ubic-cell');
                 const ubic = (json.copia && json.copia.ubicacion) || null;
                 if (ubic) {
@@ -426,7 +415,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     ubicCell.innerHTML = '<span class="text-muted">Sin ubicación</span>';
                 }
 
-                // actualizar atributos del botón
                 const editBtn = row.querySelector('.btn-edit-copia');
                 if (editBtn && json.copia) {
                     editBtn.dataset.estado = json.copia.estado ?? '';
@@ -437,10 +425,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
-            // close modal
             bsModal.hide();
 
-            // toast success
             const toastHtml = `<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
                 <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
                   <div class="d-flex">
