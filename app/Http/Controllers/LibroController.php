@@ -258,9 +258,22 @@ class LibroController extends Controller
 
     public function detalle(Libro $libro)
     {
-        $libro->load(['autores', 'genero', 'copias']);
+        // eager load
+        $libro->load(['autores', 'genero']);
+
+        // pasamos ubicaciones para el modal de edición de copias
         $ubicaciones = Ubicacion::all();
-        return view('libros.detalle', compact('libro', 'ubicaciones'));
+
+        // Para compatibilidad con vistas antiguas, pasamos un paginator vacío:
+        // (no es pesado: sólo 10 registros; además tu JS usa la API paginada)
+        $copias = Copia::where('id_libro_interno', $libro->id_libro_interno)
+                        ->with('ubicacion')
+                        ->orderBy('id_copia', 'asc')
+                        ->paginate(10);
+
+        // si quieres no cargar copias aquí y depender sólo de AJAX, puedes
+        // enviar $copias = null; pero el paginator evita el Undefined variable.
+        return view('libros.detalle', compact('libro', 'ubicaciones', 'copias'));
     }
 
     public function show($id)
@@ -506,54 +519,48 @@ class LibroController extends Controller
 
             $perPage = (int) $request->query('per_page', 10);
             $page = (int) $request->query('page', 1);
-            $cacheKey = "libro_{$id}_copias_p_{$perPage}_pg_{$page}";
 
-            $result = \Cache::remember($cacheKey, now()->addMinutes(3), function () use ($libro, $perPage) {
-                $q = Copia::where('id_libro_interno', $libro->id_libro_interno)
-                    ->with('ubicacion')
-                    ->where(function ($q) {
-                        $q->whereNull('estado')
-                        ->orWhereNotIn('estado', ['prestado', 'Prestada', 'Prestado']);
-                    });
+            $query = Copia::where('id_libro_interno', $libro->id_libro_interno)
+                ->with('ubicacion')
+                ->where(function ($q) {
+                    $q->whereNull('estado')
+                    ->orWhereNotIn('estado', ['prestado', 'Prestada', 'Prestado']);
+                })
+                ->orderBy('id_copia', 'asc');
 
-                // usar paginate para evitar traer todo
-                return $q->orderBy('id_copia', 'desc')->paginate($perPage);
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+            // transformar items para JSON exactamente en el formato que usa tu JS
+            $items = $paginator->getCollection()->map(function ($c) {
+                return [
+                    'id_copia'    => $c->id_copia ?? null,
+                    'id_ubicacion'=> $c->id_ubicacion ?? null,
+                    'estado'      => $c->estado ?? null,
+                    'ubicacion'   => $c->ubicacion ? [
+                        'estante' => $c->ubicacion->estante ?? null,
+                        'seccion' => $c->ubicacion->seccion ?? null,
+                    ] : null,
+                    // URL para editar (por si el front no la recibe)
+                    'update_url'  => route('copias.update', $c->id_copia ?? $c->id),
+                ];
             });
 
-            // transformar datos
-            $out = [
-                'data' => $result->items(),
-                'current_page' => $result->currentPage(),
-                'last_page' => $result->lastPage(),
-                'per_page' => $result->perPage(),
-                'total' => $result->total(),
+            $payload = [
+                'data' => $items,
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
             ];
 
-            // normalizar ubicacion por item
-            $out['data'] = array_map(function ($c) {
-                $ubic = null;
-                if (!empty($c['ubicacion'])) {
-                    $parts = [];
-                    if (!empty($c['ubicacion']['estante'])) $parts[] = $c['ubicacion']['estante'];
-                    if (!empty($c['ubicacion']['seccion'])) $parts[] = $c['ubicacion']['seccion'];
-                    if (!empty($c['ubicacion']['descripcion'])) $parts[] = $c['ubicacion']['descripcion'];
-                    $ubic = implode(' / ', $parts);
-                }
-                return [
-                    'id_copia' => $c['id_copia'] ?? null,
-                    'id_ubicacion' => $c['id_ubicacion'] ?? null,
-                    'estado' => $c['estado'] ?? null,
-                    'ubicacion' => $ubic,
-                ];
-            }, $out['data']);
-
-            return response()->json($out, 200);
+            return response()->json($payload, 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Libro no encontrado'], 404);
         } catch (\Throwable $e) {
-            \Log::error('Error en copiasDisponibles: ' . $e->getMessage(), [
+            \Log::error('Error en copiasDisponibles (paginated): ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'libro_id' => $id,
+                'request' => $request->all(),
             ]);
             return response()->json(['message' => 'Error interno al obtener copias'], 500);
         }

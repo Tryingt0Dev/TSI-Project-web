@@ -49,10 +49,11 @@
     </div>
 
     {{-- Copias (cargadas por AJAX) --}}
+    
     <div class="card shadow-sm mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>Copias</strong>
-            <small id="copias-count" class="text-muted">{{ $libro->copias->count() }}</small>
+            <small id="copias-count" class="text-muted">{{ isset($copias) ? $copias->total() : ($libro->copias->count() ?? 0) }}</small>
         </div>
 
         <div class="card-body p-3">
@@ -261,8 +262,6 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 estadoHtml = `<span class="badge bg-secondary text-white">${estado}</span>`;
             }
-
-            const ubicacionText = c.ubicacion ? ( (c.ubicacion.estante ?? '-') + ' / ' + (c.ubicacion.seccion ?? '-') ) : '<span class="text-muted">Sin ubicación</span>';
 
             tr.innerHTML = `
                 <td class="align-middle">${c.id_copia ?? ''}</td>

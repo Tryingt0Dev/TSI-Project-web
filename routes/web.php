@@ -38,9 +38,11 @@ Route::resource('libros', LibroController::class);
 Route::get('/buscar-libro', [LibroController::class, 'buscarLibro'])->name('buscar-libro');
 Route::get('/libros/{libro}/detalle', [LibroController::class, 'detalle'])
      ->name('libros.detalle');
+// copias disponibles
 Route::get('/api/libro/{id}/copias-disponibles', [LibroController::class, 'copiasDisponibles'])
     ->name('api.libro.copias-disponibles')
     ->middleware('auth');
+Route::get('libros/{id}/copias-disponibles', [LibroController::class, 'copiasDisponibles'])->name('libros.copias_disponibles');
 // generos
 Route::post('/api/generos', [GeneroController::class, 'store'])
     ->name('api.generos.store')
