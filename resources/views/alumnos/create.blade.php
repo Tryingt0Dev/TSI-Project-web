@@ -44,7 +44,7 @@
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Fecha de registro</label>
-                        <input type="date" name="fecha_registro" value="{{ old('fecha_registro') }}" class="form-control">
+                        <input type="date" name="fecha_registro" value="{{ now()->toDateString() }}" class="form-control" readonly>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Atrasos</label>
