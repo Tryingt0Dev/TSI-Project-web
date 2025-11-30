@@ -47,7 +47,7 @@
                             <tr>
                                 <td class="fw-semibold">{{ $usuario->name }}</td>
                                 <td>{{ $usuario->apellido }}</td>
-                                <td class="text-muted">{{ $usuario->rut }}</td>
+                                <td>{{ $usuario->rut_con_dv ?? $usuario->rut ?? 'N/A' }}</td>
                                 <td>{{ $usuario->email }}</td>
 
                                 {{-- Badge de rol --}}

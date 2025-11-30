@@ -62,14 +62,24 @@
                 </div>
 
                 {{-- Rol --}}
+                @php $editingSelf = auth()->check() && auth()->id() === $usuario->id; @endphp
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Rol</label>
-                    <select name="rol" class="form-select" required>
+                    <label for="rol" class="form-label">Rol</label>
+                    <select name="rol" id="rol" class="form-select" @if($editingSelf) disabled @endif>
                         <option value="0" {{ $usuario->rol == 0 ? 'selected' : '' }}>Administrador</option>
                         <option value="1" {{ $usuario->rol == 1 ? 'selected' : '' }}>Bibliotecario</option>
                     </select>
-                </div>
 
+                    {{-- Si el input está deshabilitado (editingSelf), añadimos hidden para que el valor llegue al servidor --}}
+                    @if($editingSelf)
+                        <input type="hidden" name="rol" value="{{ $usuario->rol }}">
+                        <div class="form-text text-muted">No puedes quitarte el rol administrador a ti mismo desde aquí.</div>
+                    @endif
+
+                    @error('rol')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
                 {{-- Contraseña --}}
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Nueva Contraseña <span class="text-muted small">(opcional)</span></label>
