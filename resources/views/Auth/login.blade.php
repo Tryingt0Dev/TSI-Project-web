@@ -11,8 +11,8 @@
     <link rel="stylesheet" href="{{ asset('css/login.css') }}">
 </head>
 
-<body class="flex items-center justify-center p-4">
-    
+<body class="flex items-center justify-center p-4 bg-[url('{{ asset('img/image.png') }}')] bg-cover bg-center bg-no-repeat">
+
     <div id="card" 
         class="tilt-card fade-in bg-white/80 backdrop-blur-xl shadow-xl rounded-2xl p-10 w-96 border border-white/30">
 
