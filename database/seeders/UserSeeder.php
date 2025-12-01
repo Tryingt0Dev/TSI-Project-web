@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
             'name' => 'Admin',
             'apellido' => 'User',
             'rut' => '12345678-9',
-            'email' => 'admin@coffeandcatt.cl',
+            'email' => 'admin2@coffeandcatt.cl',
             'password' => Hash::make('password'),
             'rol' => 0, // 0: admin, 1: bibliotecario
             //'fecha_registro' => now()->subDays(25)
