@@ -20,7 +20,7 @@ class LibroSeeder extends Seeder
         }
 
         // Crear X libros — ajusta el número a tu gusto
-        $num = 350; // <- cambia aquí si quieres más o menos
+        $num = 150; // <- cambia aquí si quieres más o menos
         Libro::factory($num)->create()->each(function ($libro) {
             // opcional: si tienes relación con autores, asócialos aquí
             if (method_exists($libro, 'autores')) {

@@ -119,11 +119,6 @@ class LibroController extends Controller
                 ->withErrors(['genero' => 'No se pudo determinar el género. Selecciona o crea un género válido.']);
         }
 
-        // Si tu tabla libros requiere id_genero NOT NULL, validar aquí
-        if (is_null($generoId)) {
-            return back()->withInput()->withErrors(['genero' => 'No se pudo determinar el género. Selecciona o crea un género válido.']);
-        }
-
         $numCopias = (int) $request->input('num_copias', 0);
         $idUbicacion = $request->input('id_ubicacion', null);
 
@@ -175,7 +170,6 @@ class LibroController extends Controller
             }
 
             // Crear copias solicitadas (si no se indicó ubicacion, las copias tendrán id_ubicacion NULL)
-            // IMPORTANTE: si num_copias es muy grande, podrías limitarlo por seguridad
             $maxCopias = 500; // ajustar según necesidad
             $numCopias = min($numCopias, $maxCopias);
 
@@ -264,15 +258,12 @@ class LibroController extends Controller
         // pasamos ubicaciones para el modal de edición de copias
         $ubicaciones = Ubicacion::all();
 
-        // Para compatibilidad con vistas antiguas, pasamos un paginator vacío:
-        // (no es pesado: sólo 10 registros; además tu JS usa la API paginada)
+        // Para compatibilidad con vistas antiguas, pasamos un paginator:
         $copias = Copia::where('id_libro_interno', $libro->id_libro_interno)
                         ->with('ubicacion')
                         ->orderBy('id_copia', 'asc')
                         ->paginate(10);
 
-        // si quieres no cargar copias aquí y depender sólo de AJAX, puedes
-        // enviar $copias = null; pero el paginator evita el Undefined variable.
         return view('libros.detalle', compact('libro', 'ubicaciones', 'copias'));
     }
 
@@ -362,10 +353,21 @@ class LibroController extends Controller
         //
         $newCopiesCount = (int) $request->input('new_copies_count', 0);
         $newCopiesCodesRaw = (string) $request->input('new_copies_codes', '');
-        $hasCodes = trim($newCopiesCodesRaw) !== '';
-
-        // Determinar campo de ubicacion enviado (compatibilidad con vistas antiguas)
         $idUbicacionFromRequest = $request->input('id_ubicacion', $request->input('id_ubicaciones', null));
+
+        // Parsear códigos: acepta separador por línea o por coma
+        $codes = [];
+        if (trim($newCopiesCodesRaw) !== '') {
+            // split on new lines and commas
+            $rawParts = preg_split('/\r\n|\r|\n|,/', $newCopiesCodesRaw);
+            foreach ($rawParts as $p) {
+                $c = trim($p);
+                if ($c !== '') $codes[] = mb_substr($c, 0, 200); // cortar si es muy largo
+            }
+        }
+
+        $hasCodes = count($codes) > 0;
+        $created = 0;
 
         // Si el usuario pide crear copias (cantidad > 0 o códigos) la ubicación es obligatoria
         if (($newCopiesCount > 0 || $hasCodes) && empty($idUbicacionFromRequest)) {
@@ -374,30 +376,23 @@ class LibroController extends Controller
                 ->withErrors(['id_ubicacion' => 'La ubicación es obligatoria cuando se crean copias nuevas. Por favor selecciona una ubicación para las copias.']);
         }
 
-        // **VALIDACION ADICIONAL**: si se intentan crear copias (count>0 o codes no vacío), id_ubic es obligatorio
-        if (($count > 0 || !empty($codes)) && empty($idUbic)) {
-            return redirect()->back()
-                ->withInput()
-                ->withErrors(['id_ubicacion' => 'La ubicación es requerida al crear copias.']);
-        }
-
-        if ($count > 0 || !empty($codes)) {
+        if ($newCopiesCount > 0 || $hasCodes) {
             DB::beginTransaction();
             try {
                 // crear primero copias con códigos especificados
-                if (!empty($codes)) {
+                if ($hasCodes) {
                     foreach ($codes as $code) {
                         $data = [
                             'id_libro_interno' => $libro->id_libro_interno,
+                            // coincidir con el ENUM original si lo usas: "Disponible"
                             'estado' => 'Disponible',
                         ];
-                        // si existe la columna id_ubicacion en tabla copia, incluirla
+                        // asignar ubicacion si la columna existe
                         if (Schema::hasColumn('copia', 'id_ubicacion')) {
-                            $data['id_ubicacion'] = $idUbic !== null ? $idUbic : null;
+                            $data['id_ubicacion'] = $idUbicacionFromRequest !== null ? $idUbicacionFromRequest : null;
                         } elseif (Schema::hasColumn('copia', 'id_ubicaciones')) {
-                            $data['id_ubicaciones'] = $idUbic !== null ? $idUbic : null;
+                            $data['id_ubicaciones'] = $idUbicacionFromRequest !== null ? $idUbicacionFromRequest : null;
                         }
-                        // si existe columna 'codigo' la añadimos (evita error si no existe)
                         if (Schema::hasColumn('copia', 'codigo')) {
                             $data['codigo'] = $code;
                         }
@@ -406,16 +401,16 @@ class LibroController extends Controller
                     }
                 }
 
-                // crear copias por cantidad solicitada
-                for ($i = 0; $i < $count; $i++) {
+                // crear copias por cantidad solicitada (sin códigos)
+                for ($i = 0; $i < $newCopiesCount; $i++) {
                     $data = [
                         'id_libro_interno' => $libro->id_libro_interno,
                         'estado' => 'Disponible',
                     ];
                     if (Schema::hasColumn('copia', 'id_ubicacion')) {
-                        $data['id_ubicacion'] = $idUbic !== null ? $idUbic : null;
+                        $data['id_ubicacion'] = $idUbicacionFromRequest !== null ? $idUbicacionFromRequest : null;
                     } elseif (Schema::hasColumn('copia', 'id_ubicaciones')) {
-                        $data['id_ubicaciones'] = $idUbic !== null ? $idUbic : null;
+                        $data['id_ubicaciones'] = $idUbicacionFromRequest !== null ? $idUbicacionFromRequest : null;
                     }
                     // si existe columna 'codigo' generamos un código único para la copia
                     if (Schema::hasColumn('copia', 'codigo')) {
