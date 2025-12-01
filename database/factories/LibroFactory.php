@@ -8,14 +8,19 @@ use App\Models\Genero;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class LibroFactory extends Factory
 {
     protected $model = Libro::class;
 
+    // Cache interno para no pedir a OpenLibrary en cada ejecución del factory
+    protected static $buffer = [];
+    protected static $bufferIndex = 0;
+
     public function definition()
     {
-        // fallback values (faker)
+        // fallback values
         $fallback = [
             'titulo' => $this->faker->sentence(3),
             'isbn_libro' => $this->faker->unique()->isbn13(),
@@ -24,115 +29,157 @@ class LibroFactory extends Factory
             'imagen' => null,
         ];
 
-        // small random query to fetch plausible books
-        $q = $this->faker->words(2, true);
+        // -------------------------------------------------------------
+        // 1) Intentar reutilizar resultados bufferizados para ahorrar API
+        // -------------------------------------------------------------
+        if (!empty(self::$buffer) && self::$bufferIndex < count(self::$buffer)) {
+            $result = self::$buffer[self::$bufferIndex++];
+        } else {
+            // recargar buffer
+            self::$buffer = $this->fetchBooksFromOpenLibrary();
+            self::$bufferIndex = 0;
 
-        try {
-            $res = Http::timeout(6)->get('https://openlibrary.org/search.json', [
-                'q' => $q,
-                'limit' => 8,
-            ]);
-
-            if ($res->ok() && !empty($res->json('docs'))) {
-                $docs = $res->json('docs');
-                // choose a doc that preferably contains ISBN
-                $chosen = null;
-                foreach ($docs as $d) {
-                    if (!empty($d['isbn'])) { $chosen = $d; break; }
-                }
-                if (!$chosen) $chosen = $docs[0];
-
-                $titulo = $chosen['title'] ?? $fallback['titulo'];
-
-                // pick isbn prefer 13
-                $isbn = '';
-                if (!empty($chosen['isbn']) && is_array($chosen['isbn'])) {
-                    foreach ($chosen['isbn'] as $i) {
-                        $clean = preg_replace('/[^0-9Xx]/', '', (string)$i);
-                        if (strlen($clean) === 13) { $isbn = $clean; break; }
-                        if (!$isbn) $isbn = $clean;
-                    }
-                }
-
-                // get editions for publisher/date if we have a work key
-                $editorial = $fallback['editorial'];
-                $fecha = $fallback['fecha_publicacion'];
-                $imagen = null;
-
-                $workKey = $chosen['key'] ?? null;
-                if ($workKey) {
-                    $ed = Http::timeout(6)->get("https://openlibrary.org{$workKey}/editions.json", ['limit' => 5]);
-                    if ($ed->ok()) {
-                        $entries = $ed->json('entries') ?? [];
-                        $edition = null;
-                        foreach ($entries as $en) {
-                            if ((!empty($en['isbn_13']) || !empty($en['isbn_10'])) && !empty($en['publishers'])) {
-                                $edition = $en;
-                                break;
-                            }
-                        }
-                        if (!$edition && !empty($entries)) $edition = $entries[0];
-
-                        if (!empty($edition)) {
-                            if (!empty($edition['publishers']) && is_array($edition['publishers'])) {
-                                $editorial = $edition['publishers'][0] ?? $editorial;
-                            }
-                            if (!empty($edition['publish_date'])) {
-                                if (preg_match('/\d{4}/', $edition['publish_date'], $m)) {
-                                    $fecha = $m[0] . '-01-01';
-                                } else {
-                                    $fecha = $fallback['fecha_publicacion'];
-                                }
-                            } elseif (!empty($chosen['first_publish_year'])) {
-                                $fecha = $chosen['first_publish_year'] . '-01-01';
-                            }
-                            if (!empty($edition['isbn_13']) && is_array($edition['isbn_13'])) {
-                                $isbn = $edition['isbn_13'][0];
-                            } elseif (!empty($edition['isbn_10']) && is_array($edition['isbn_10'])) {
-                                $isbn = $edition['isbn_10'][0];
-                            }
-                        }
-                    }
-                }
-
-                if ($isbn) {
-                    $imagen = "https://covers.openlibrary.org/b/isbn/{$isbn}-L.jpg";
-                } elseif (!empty($chosen['cover_i'])) {
-                    $imagen = "https://covers.openlibrary.org/b/id/{$chosen['cover_i']}-L.jpg";
-                }
-
-                $result = [
-                    'titulo' => $titulo,
-                    'isbn_libro' => $isbn ?: $fallback['isbn_libro'],
-                    'editorial' => $editorial ?: $fallback['editorial'],
-                    'fecha_publicacion' => $fecha ?: $fallback['fecha_publicacion'],
-                    'imagen' => $imagen,
-                ];
+            if (!empty(self::$buffer)) {
+                $result = self::$buffer[self::$bufferIndex++];
             } else {
+                // si la API falló, fallback
                 $result = $fallback;
             }
-        } catch (\Throwable $e) {
-            $result = $fallback;
         }
 
-        // assign FK: pick existing Ubicacion and Genero if present
+        // Normalizar campos / garantizar ISBN no vacío
+        $isbnRaw = (string) ($result['isbn_libro'] ?? '');
+        $isbnRaw = preg_replace('/[^0-9Xx]/', '', $isbnRaw);
+        if ($isbnRaw === '' || strlen($isbnRaw) < 8) {
+            // fallback: generar un ISBN seguro
+            $isbnRaw = $this->faker->unique()->isbn13();
+        }
+
+        // Evitar colisión con BD: si existe, generar alternative (no persistida aún)
+        if (\App\Models\Libro::where('isbn_libro', $isbnRaw)->exists()) {
+            // el factory no debe crear duplicados: generar uno nuevo con faker
+            $isbnRaw = $this->faker->unique()->isbn13();
+        }
+
+        // FK asignadas
         $ubicacion = Ubicacion::inRandomOrder()->first();
         $genero = Genero::inRandomOrder()->first();
 
-        // if missing, leave null (your seeder should ensure these exist first)
         $id_ubicacion = $ubicacion ? $ubicacion->id_ubicacion : null;
         $id_genero = $genero ? $genero->id_genero : null;
 
         return [
-            'titulo' => Str::limit($result['titulo'], 150),
-            'isbn_libro' => substr((string)($result['isbn_libro'] ?? $this->faker->unique()->isbn13()), 0, 17),
-            'editorial' => $result['editorial'] ?? $this->faker->company(),
-            'fecha_publicacion' => $result['fecha_publicacion'] ?? null,
+            'titulo' => Str::limit($result['titulo'] ?? $fallback['titulo'], 150),
+            'isbn_libro' => substr((string)$isbnRaw, 0, 17),
+            'editorial' => $result['editorial'] ?? $fallback['editorial'],
+            'fecha_publicacion' => $result['fecha_publicacion'] ?? $fallback['fecha_publicacion'],
             'stock_total' => $this->faker->numberBetween(1, 20),
             'stock_disponible' => $this->faker->numberBetween(0, 10),
             'imagen' => $result['imagen'] ?? null,
             'id_ubicacion' => $id_ubicacion,
             'id_genero' => $id_genero,
         ];
+    }
+
+    /**
+     * Descarga libros de OpenLibrary con sleep y retry.
+     * Retorna array de items con keys: titulo,isbn_libro,editorial,fecha_publicacion,imagen
+     */
+    protected function fetchBooksFromOpenLibrary()
+    {
+        // idiomas: 'spa' 70% (7/10), el resto repartido
+        $lang = $this->faker->randomElement([
+            'spa','spa','spa','spa','spa','spa','spa', // 7
+            'eng','eng', // 2
+            'jpn', // 1
+            'rus', // 1
+        ]);
+
+        $params = [
+            // query: usamos subject:novel y language para priorizar novelas en ese idioma
+            'q' => "subject:novel language:$lang",
+            'limit' => 12,
+        ];
+
+        $maxRetries = 3;
+        $attempt = 0;
+
+        while ($attempt < $maxRetries) {
+            try {
+                // Espera leve entre requests para evitar rate-limit / bloqueos
+                sleep(1);
+
+                // usar withoutVerifying para entornos Windows locales con problemas SSL
+                $res = Http::withoutVerifying()->timeout(8)->get('https://openlibrary.org/search.json', $params);
+
+                if (!$res->ok()) {
+                    throw new \Exception("Bad status: ".$res->status());
+                }
+
+                $docs = $res->json('docs', []);
+
+                if (empty($docs)) {
+                    throw new \Exception("No docs received");
+                }
+
+                $buffer = [];
+
+                foreach ($docs as $doc) {
+                    $title = $doc['title'] ?? null;
+                    if (!$title) continue;
+
+                    // seleccionar isbn (preferir 13)
+                    $isbn = null;
+                    if (!empty($doc['isbn']) && is_array($doc['isbn'])) {
+                        foreach ($doc['isbn'] as $i) {
+                            $clean = preg_replace('/[^0-9Xx]/', '', (string)$i);
+                            if (strlen($clean) === 13) { $isbn = $clean; break; }
+                            if (!$isbn) $isbn = $clean;
+                        }
+                    }
+
+                    $editorial = null;
+                    if (!empty($doc['publisher']) && is_array($doc['publisher'])) {
+                        $editorial = $doc['publisher'][0];
+                    } elseif (!empty($doc['publisher_name']) && is_array($doc['publisher_name'])) {
+                        $editorial = $doc['publisher_name'][0];
+                    }
+
+                    $fecha = !empty($doc['first_publish_year']) ? ($doc['first_publish_year'].'-01-01') : null;
+
+                    // Cover: preferir b/id (cover_i) o isbn cover
+                    $cover = null;
+                    if (!empty($doc['cover_i'])) {
+                        $cover = "https://covers.openlibrary.org/b/id/{$doc['cover_i']}-L.jpg";
+                    } elseif ($isbn) {
+                        // usar isbn cover si no hay cover_i
+                        $cover = "https://covers.openlibrary.org/b/isbn/{$isbn}-L.jpg";
+                    }
+
+                    // formatear imagen para que siempre sea null o URL 'b/id' o 'b/isbn'
+                    $buffer[] = [
+                        'titulo' => $title,
+                        'isbn_libro' => $isbn ?: Str::random(12),
+                        'editorial' => $editorial ?: 'Editorial sin info',
+                        'fecha_publicacion' => $fecha ?: null,
+                        'imagen' => $cover ?: null,
+                    ];
+                }
+
+                if (!empty($buffer)) {
+                    Log::info("LibroFactory: buffer cargado con ".count($buffer)." libros (lang={$lang})");
+                    return $buffer;
+                }
+
+            } catch (\Throwable $e) {
+                Log::warning("LibroFactory intento ".($attempt+1)." fallo: ".$e->getMessage());
+                // backoff
+                sleep(2);
+            }
+
+            $attempt++;
+        }
+
+        return []; // fallback, factory usará fallback automático
     }
 }

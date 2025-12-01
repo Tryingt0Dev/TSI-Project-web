@@ -4,23 +4,17 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Http;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
-    }
-
-    /**
-     * Bootstrap any application services.
-     */
+    }   
     public function boot(): void
     {
-            if (file_exists(base_path('routes/web.php'))) {
+        if (file_exists(base_path('routes/web.php'))) {
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         }
@@ -31,5 +25,13 @@ class AppServiceProvider extends ServiceProvider
                 ->middleware('api')
                 ->group(base_path('routes/api.php'));
         }
+
+        // Registrar macro para ignorar verificación SSL SOLO en entornos locales/testing
+        if (app()->environment(['local', 'testing'])) {
+            Http::macro('noSsl', function () {
+                return Http::withoutVerifying();
+        });
     }
+    }
+    
 }

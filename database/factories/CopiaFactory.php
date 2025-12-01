@@ -21,9 +21,9 @@ class CopiaSeeder extends Seeder
         $ubicKeyName = $ubicDefault ? $ubicDefault->getKeyName() : null;
         $ubicDefaultValue = $ubicDefault ? $ubicDefault->{$ubicKeyName} : null;
 
-        // Por cada libro, crear entre 1 y 6 copias
+        // Por cada libro, crear entre 1 y 60 copias
         Libro::all()->each(function($libro) use ($ubicDefaultValue) {
-            $num = rand(1,6);
+            $num = rand(1,60);
             for ($i=0;$i<$num;$i++){
                 // obtener llave primaria del libro de forma genérica
                 $libKeyName = $libro->getKeyName();
