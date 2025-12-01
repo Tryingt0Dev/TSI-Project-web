@@ -121,14 +121,11 @@
                             </div>
 
                             <div class="d-flex align-items-center">
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-primary btn-prestar"
-                                        data-libro-id="{{ $libro->id_libro_interno }}"
-                                        data-libro-titulo="{{ e($libro->titulo) }}">
+                                <a href="{{ route('prestamos.create') }}" class="btn btn-sm btn-outline-primary btn-prestar">
                                     <i class="bi bi-hand-index-thumb me-1"></i> Prestar
-                                </button>
+                                </a>
                             </div>
-
+                            
                             <div class="d-flex align-items-center mt-2">
                                 <div class="action-btns d-inline-flex align-items-center" role="group" aria-label="Acciones libro">
                                     <a href="{{ route('libros.edit', $libro->id_libro_interno) }}"
@@ -151,118 +148,7 @@
         @endforelse
     </div>
 
-    {{-- MODAL DE PRÉSTAMO --}}
-    <div class="modal fade" id="modalPrestamo" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content shadow-lg rounded-4">
-                <div class="modal-header bg-primary text-white rounded-top">
-                    <h5 class="modal-title"><i class="bi bi-journal-arrow-up me-2"></i> Registrar Préstamo</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-
-                <form id="formPrestamo" action="{{ route('prestamos.store') }}" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Administrador</label>
-                            <input type="text" class="form-control"
-                                value="{{ Auth::user()->name }} {{ Auth::user()->apellido }}"
-                                readonly>
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Alumno (RUT)</label>
-                                <select name="rut_alumno" id="modal_rut_alumno" class="form-select" required>
-                                    <option value="">Seleccione un alumno</option>
-                                    @foreach($alumnos as $alumno)
-                                        <option value="{{ $alumno->rut_alumno }}">
-                                            {{ $alumno->rut_alumno }} — {{ $alumno->nombre_alumno }} {{ $alumno->apellido_alumno }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Copia del libro</label>
-                                <select name="id_copia" id="modal_id_copia" class="form-select" required>
-                                    <option value="">Seleccione una copia disponible</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Fecha límite</label>
-                                <input type="date" name="fecha_limite" id="modal_fecha_limite"
-                                    class="form-control" min="{{ date('Y-m-d') }}" required>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Observaciones (opcional)</label>
-                                <textarea name="observaciones" id="modal_observaciones"
-                                        class="form-control" rows="2"></textarea>
-                            </div>
-                        </div>
-
-                        <div class="alert alert-info mt-3" id="modalLibroTitulo" style="display:none;"></div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Guardar préstamo</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     @push('scripts')
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.btn-prestar').forEach(btn => {
-            btn.addEventListener('click', async function () {
-                const libroId = this.dataset.libroId ?? this.dataset.libro;
-                const titulo = this.dataset.libroTitulo ?? this.dataset.titulo ?? '';
-
-                if (!libroId) {
-                    console.error('Falta el data-libro-id en el botón');
-                    return;
-                }
-
-                const msg = document.getElementById('modalLibroTitulo');
-                if (msg) { msg.style.display = 'block'; msg.textContent = "Libro seleccionado: " + (titulo || libroId); }
-
-                const select = document.getElementById('modal_id_copia');
-                if (select) {
-                    select.innerHTML = `<option value="">Cargando copias...</option>`;
-                    try {
-                        const res = await fetch(`/api/libro/${libroId}/copias-disponibles`);
-                        if (!res.ok) throw new Error('Error cargando copias: ' + res.status);
-                        const copias = await res.json();
-                        select.innerHTML = `<option value="">Seleccione una copia</option>`;
-                        if (!Array.isArray(copias) || copias.length === 0) {
-                            select.innerHTML += `<option disabled>No hay copias disponibles</option>`;
-                        } else {
-                            copias.forEach(c => {
-                                const idC = c.id_copia ?? c.id;
-                                const ubic = c.ubicacion ?? (c.ubicacion_nombre ?? 'Sin ubicación');
-                                const opt = document.createElement('option');
-                                opt.value = idC;
-                                opt.textContent = `Copia #${idC} — ${ubic}`;
-                                select.appendChild(opt);
-                            });
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        select.innerHTML = `<option value="">Error cargando copias</option>`;
-                    }
-                }
-
-                const modalEl = document.getElementById('modalPrestamo');
-                if (modalEl) new bootstrap.Modal(modalEl).show();
-            });
-        });
-    });
-    </script>
     @endpush
 
     {{-- Paginación --}}
